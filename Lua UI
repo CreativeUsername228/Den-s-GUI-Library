@@ -1,529 +1,968 @@
+look, i have this lua UI library:
+
+-- ========================================
+-- CUSTOM UI LIBRARY
+-- A fully reusable UI library for Roblox exploits
+-- ========================================
+
 --[[
-    UI Library Showcase
-    A comprehensive demo showing all features in action
-    Clean, optimized, and practical implementation
-]]
-
--- Load the library
-local success, Library = pcall(function()
-    return loadstring(game:HttpGet("your_library_url_here"))()
-end)
-
-if not success then
-    warn("Failed to load UI Library")
-    return
-end
-
--- Create main interface
-local Window = Library:CreateWindow({
-    Title = "Game Enhancer",
-    Subtitle = "v2.1 • Made with Custom UI",
-    Theme = "Blue", -- Clean blue theme
-    Size = {580, 480},
-    ToggleKey = Enum.KeyCode.Insert -- More convenient key
-})
-
--- Organize features into logical sections
-local GameTab = Window:CreateTab("Gameplay")
-local VisualTab = Window:CreateTab("Visuals") 
-local PlayerTab = Window:CreateTab("Player")
-local UtilityTab = Window:CreateTab("Utilities")
-
--- Services for optimization
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-
--- Cache commonly used values
-local function getHumanoid()
-    local char = LocalPlayer.Character
-    return char and char:FindFirstChild("Humanoid")
-end
-
--- ========================================
--- GAMEPLAY TAB - Core Game Features
--- ========================================
-GameTab:AddLabel("📊 Game Enhancements")
-GameTab:AddDivider()
-
--- ESP System
-local espToggle = GameTab:AddToggle({
-    Name = "Player ESP",
-    Default = false,
-    Callback = function(enabled)
-        print(enabled and "📡 ESP Activated - Now tracking players" or "📡 ESP Disabled")
-        
-        -- Clean implementation
-        if enabled then
-            -- ESP logic would go here
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    -- Create ESP visuals
-                    print("Tracking:", player.Name)
-                end
-            end
-        else
-            -- Clean up ESP visuals
-            print("Cleaned up ESP visuals")
+    HOW TO USE:
+    
+    local Library = loadstring(game:HttpGet("your_library_url_here"))()
+    
+    local Window = Library:CreateWindow({
+        Title = "My Script",
+        Subtitle = "by @username",
+        Theme = "Purple", -- Purple, Blue, Red, Green, Orange, Pink
+        Size = {550, 400},
+        ToggleKey = Enum.KeyCode.K
+    })
+    
+    local Tab = Window:CreateTab("Tab Name")
+    
+    Tab:AddToggle({
+        Name = "Toggle Name",
+        Default = false,
+        Callback = function(value)
+            print(value)
         end
-    end
-})
+    })
+    
+    Tab:AddSlider({
+        Name = "Slider Name",
+        Min = 0,
+        Max = 100,
+        Default = 50,
+        Increment = 1,
+        Suffix = "%",
+        Callback = function(value)
+            print(value)
+        end
+    })
+    
+    Tab:AddButton({
+        Name = "Button Name",
+        Callback = function()
+            print("clicked!")
+        end
+    })
+    
+    Tab:AddKeybind({
+        Name = "Keybind Name",
+        Default = Enum.KeyCode.E,
+        Callback = function(key)
+            print(key)
+        end
+    })
+    
+    Tab:AddDropdown({
+        Name = "Dropdown Name",
+        Options = {"Option 1", "Option 2", "Option 3"},
+        Default = "Option 1",
+        Callback = function(value)
+            print(value)
+        end
+    })
+    
+    Tab:AddTextbox({
+        Name = "Textbox Name",
+        Default = "Enter text...",
+        PlaceholderText = "Type here",
+        ClearOnFocus = false,
+        Callback = function(value)
+            print(value)
+        end
+    })
+    
+    Tab:AddColorPicker({
+        Name = "Color Picker",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(color)
+            print(color)
+        end
+    })
+    
+    Tab:AddLabel("This is a label!")
+    
+    Tab:AddDivider()
+--]]
 
--- Auto-Farm System
-local farmToggle = GameTab:AddToggle({
-    Name = "Auto Farm",
-    Default = false,
-    Callback = function(enabled)
-        print(enabled and "🤖 Farm Bot Activated" or "🤖 Farm Bot Stopped")
-        
-        if enabled then
-            -- Start farming loop
-            task.spawn(function()
-                while farmToggle:Get() do
-                    -- Farming logic here
-                    task.wait(0.5)
+local Library = {}
+Library.__index = Library
+
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+
+-- Theme colors
+local Themes = {
+    Purple = {
+        Main = Color3.fromRGB(120, 80, 160),
+        Light = Color3.fromRGB(150, 100, 200),
+        Dark = Color3.fromRGB(100, 60, 140)
+    },
+    Blue = {
+        Main = Color3.fromRGB(80, 120, 200),
+        Light = Color3.fromRGB(100, 150, 230),
+        Dark = Color3.fromRGB(60, 100, 170)
+    },
+    Red = {
+        Main = Color3.fromRGB(200, 80, 80),
+        Light = Color3.fromRGB(230, 100, 100),
+        Dark = Color3.fromRGB(170, 60, 60)
+    },
+    Green = {
+        Main = Color3.fromRGB(80, 200, 120),
+        Light = Color3.fromRGB(100, 230, 150),
+        Dark = Color3.fromRGB(60, 170, 100)
+    },
+    Orange = {
+        Main = Color3.fromRGB(220, 140, 60),
+        Light = Color3.fromRGB(240, 160, 80),
+        Dark = Color3.fromRGB(190, 120, 50)
+    },
+    Pink = {
+        Main = Color3.fromRGB(220, 100, 160),
+        Light = Color3.fromRGB(240, 130, 190),
+        Dark = Color3.fromRGB(190, 80, 140)
+    }
+}
+
+-- Utility functions
+local function MakeDraggable(frame, dragFrame)
+    local dragging, dragInput, dragStart, startPos
+    
+    dragFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
                 end
             end)
         end
-    end
-})
-
-GameTab:AddDivider()
-GameTab:AddLabel("⚙️ Game Settings")
-GameTab:AddDivider()
-
--- Field of View
-local fovSlider = GameTab:AddSlider({
-    Name = "Field of View",
-    Min = 50,
-    Max = 120,
-    Default = 70,
-    Increment = 5,
-    Suffix = "°",
-    Callback = function(value)
-        if LocalPlayer.Character then
-            local camera = workspace.CurrentCamera
-            if camera then
-                camera.FieldOfView = value
-                print("👁️ FOV set to " .. value .. " degrees")
-            end
-        end
-    end
-})
-
--- Quick Actions
-GameTab:AddButton({
-    Name = "Teleport to Safe Zone",
-    Callback = function()
-        print("🚀 Teleporting to nearest safe area...")
-        
-        local safeZones = workspace:FindFirstChild("SafeZones") or workspace:GetChildren()
-        local target = nil
-        
-        for _, obj in ipairs(safeZones) do
-            if obj:IsA("BasePart") and obj.Name:lower():find("safe") then
-                target = obj
-                break
-            end
-        end
-        
-        if target then
-            LocalPlayer.Character:MoveTo(target.Position)
-            print("✓ Arrived at safe location")
-        else
-            print("⚠️ No safe zone found")
-        end
-    end
-})
-
--- ========================================
--- VISUALS TAB - Graphics & Appearance
--- ========================================
-VisualTab:AddLabel("🎨 Visual Effects")
-VisualTab:AddDivider()
-
--- Lighting Effects
-local fullbrightToggle = VisualTab:AddToggle({
-    Name = "Fullbright Mode",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            Lighting.GlobalShadows = false
-            Lighting.Brightness = 2
-            print("💡 Fullbright Enabled - Bright as day!")
-        else
-            Lighting.GlobalShadows = true
-            Lighting.Brightness = 1
-            print("💡 Fullbright Disabled")
-        end
-    end
-})
-
--- Chams Effect
-VisualTab:AddToggle({
-    Name = "Wall Transparency",
-    Default = false,
-    Callback = function(enabled)
-        print(enabled and "👻 Walls are now see-through" or "👻 Wall transparency disabled")
-        -- Implementation would go here
-    end
-})
-
-VisualTab:AddDivider()
-VisualTab:AddLabel("🎭 Customization")
-VisualTab:AddDivider()
-
--- Particle Effects
-VisualTab:AddDropdown({
-    Name = "Trail Effect",
-    Options = {"None", "Fire Trail", "Sparkles", "Rainbow", "Ghostly"},
-    Default = "None",
-    Callback = function(selection)
-        print("✨ Selected trail: " .. selection)
-        
-        -- Remove existing trail
-        local char = LocalPlayer.Character
-        if char then
-            local oldTrail = char:FindFirstChild("CustomTrail")
-            if oldTrail then
-                oldTrail:Destroy()
-            end
-        end
-        
-        -- Add new trail if selected
-        if selection ~= "None" then
-            print("Creating " .. selection .. " trail...")
-        end
-    end
-})
-
--- Color Customization
-local espColorPicker = VisualTab:AddColorPicker({
-    Name = "ESP Color",
-    Default = Color3.fromRGB(0, 255, 0), -- Bright green
-    Callback = function(color)
-        local r, g, b = math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255)
-        print("🎨 ESP color changed to RGB(" .. r .. ", " .. g .. ", " .. b .. ")")
-        -- Update ESP colors here
-    end
-})
-
--- ========================================
--- PLAYER TAB - Character Modifications
--- ========================================
-PlayerTab:AddLabel("🏃 Character Settings")
-PlayerTab:AddDivider()
-
--- Movement Settings
-local speedSlider = PlayerTab:AddSlider({
-    Name = "Movement Speed",
-    Min = 16,
-    Max = 150,
-    Default = 16,
-    Increment = 2,
-    Suffix = " studs/sec",
-    Callback = function(value)
-        local humanoid = getHumanoid()
-        if humanoid then
-            humanoid.WalkSpeed = value
-            print("🏃 Speed: " .. value .. " studs/sec")
-        end
-    end
-})
-
-local jumpSlider = PlayerTab:AddSlider({
-    Name = "Jump Power",
-    Min = 50,
-    Max = 250,
-    Default = 50,
-    Increment = 10,
-    Suffix = " power",
-    Callback = function(value)
-        local humanoid = getHumanoid()
-        if humanoid then
-            humanoid.JumpPower = value
-            print("🦘 Jump power: " .. value)
-        end
-    end
-})
-
-PlayerTab:AddDivider()
-PlayerTab:AddLabel("🎯 Combat & Utility")
-PlayerTab:AddDivider()
-
--- Fly System
-local flyToggle = PlayerTab:AddToggle({
-    Name = "Flight Mode",
-    Default = false,
-    Callback = function(enabled)
-        print(enabled and "🕊️ Flight Mode Activated" or "🕊️ Flight Mode Disabled")
-        
-        if enabled then
-            -- Flight implementation
-            local bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.Name = "FlightVelocity"
-            bodyVelocity.Parent = LocalPlayer.Character.HumanoidRootPart
-        else
-            -- Clean up flight
-            local flightPart = LocalPlayer.Character.HumanoidRootPart:FindFirstChild("FlightVelocity")
-            if flightPart then
-                flightPart:Destroy()
-            end
-        end
-    end
-})
-
--- Fly Toggle Keybind
-PlayerTab:AddKeybind({
-    Name = "Fly Toggle Key",
-    Default = Enum.KeyCode.F,
-    Callback = function(key)
-        print("✈️ Toggling flight with " .. key.Name)
-        flyToggle:Set(not flyToggle:Get())
-    end
-})
-
--- Noclip Toggle
-PlayerTab:AddToggle({
-    Name = "NoClip (Ghost Mode)",
-    Default = false,
-    Callback = function(enabled)
-        print(enabled and "👻 NoClip Enabled - Walk through walls" or "👻 NoClip Disabled")
-        
-        local char = LocalPlayer.Character
-        if char then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = not enabled
-                end
-            end
-        end
-    end
-})
-
--- ========================================
--- UTILITIES TAB - Tools & Configuration
--- ========================================
-UtilityTab:AddLabel("🔧 Tools & Settings")
-UtilityTab:AddDivider()
-
--- Player Teleporter
-UtilityTab:AddTextbox({
-    Name = "Teleport to Player",
-    Default = "",
-    PlaceholderText = "Enter username...",
-    ClearOnFocus = true,
-    Callback = function(username)
-        if username == "" then return end
-        
-        print("🔍 Searching for player: " .. username)
-        
-        local targetPlayer = nil
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player.Name:lower():find(username:lower()) then
-                targetPlayer = player
-                break
-            end
-        end
-        
-        if targetPlayer and targetPlayer.Character then
-            LocalPlayer.Character:MoveTo(targetPlayer.Character.HumanoidRootPart.Position)
-            print("✓ Teleported to " .. targetPlayer.Name)
-        else
-            print("⚠️ Player not found or not in game")
-        end
-    end
-})
-
--- Chat Spammer
-UtilityTab:AddTextbox({
-    Name = "Auto Chat Message",
-    Default = "Hello!",
-    PlaceholderText = "Message to spam...",
-    ClearOnFocus = false,
-    Callback = function(message)
-        print("💬 Will send: " .. message)
-        -- Store message for spam system
-    end
-})
-
-UtilityTab:AddDivider()
-UtilityTab:AddLabel("🔄 Configuration")
-UtilityTab:AddDivider()
-
--- Preset Profiles
-UtilityTab:AddDropdown({
-    Name = "Load Preset",
-    Options = {"Default", "Speed Runner", "Stealth Mode", "Tank Build", "Custom"},
-    Default = "Default",
-    Callback = function(preset)
-        print("🔄 Loading preset: " .. preset)
-        
-        if preset == "Speed Runner" then
-            speedSlider:Set(100)
-            jumpSlider:Set(120)
-            fovSlider:Set(90)
-        elseif preset == "Stealth Mode" then
-            espToggle:Set(true)
-            espColorPicker:Set(Color3.fromRGB(0, 100, 255)) -- Blue
-        elseif preset == "Tank Build" then
-            speedSlider:Set(30)
-            jumpSlider:Set(75)
-        end
-        
-        print("✓ " .. preset .. " configuration applied")
-    end
-})
-
--- Save/Load System
-UtilityTab:AddButton({
-    Name = "💾 Save Current Settings",
-    Callback = function()
-        print("💾 Saving current configuration...")
-        
-        local config = {
-            speed = speedSlider:Get(),
-            jump = jumpSlider:Get(),
-            fov = fovSlider:Get(),
-            esp = espToggle:Get(),
-            fullbright = fullbrightToggle:Get()
-        }
-        
-        print("✓ Settings saved to memory")
-        print("  Speed:", config.speed)
-        print("  Jump:", config.jump)
-        print("  FOV:", config.fov)
-        print("  ESP:", config.esp)
-        print("  Fullbright:", config.fullbright)
-    end
-})
-
-UtilityTab:AddButton({
-    Name = "🔄 Load Saved Settings",
-    Callback = function()
-        print("🔄 Loading saved configuration...")
-        -- Load logic would go here
-    end
-})
-
-UtilityTab:AddDivider()
-UtilityTab:AddLabel("ℹ️ Information & Help")
-UtilityTab:AddDivider()
-
--- Info labels with emojis for better readability
-UtilityTab:AddLabel("• Press 'Insert' to show/hide menu")
-UtilityTab:AddLabel("• Drag the top bar to move window")
-UtilityTab:AddLabel("• Settings auto-save between sessions")
-UtilityTab:AddLabel("• Use presets for quick setups")
-UtilityTab:AddLabel("• Toggle features on/off as needed")
-
--- Credits section
-UtilityTab:AddDivider()
-UtilityTab:AddLabel("Made with Custom UI Library")
-UtilityTab:AddLabel("All features are client-side only")
-
--- ========================================
--- OPTIMIZED DEMONSTRATION
--- ========================================
-
--- Wait a moment then demonstrate features
-task.delay(3, function()
-    print("\n" .. string.rep("=", 50))
-    print("🎮 GAME ENHANCER LOADED SUCCESSFULLY")
-    print(string.rep("=", 50))
+    end)
     
-    -- Show some helpful tips
-    print("\n💡 Quick Tips:")
-    print("  • Try 'Speed Runner' preset for fast gameplay")
-    print("  • Use Flight Mode (F key) to explore maps")
-    print("  • Adjust FOV for better visibility")
-    print("  • ESP helps track other players")
-    
-    -- Demo some features automatically
-    task.wait(2)
-    
-    print("\n🔄 Applying optimized settings...")
-    
-    -- Set reasonable defaults
-    speedSlider:Set(32) -- 2x normal speed
-    fovSlider:Set(80)   -- Slightly wider view
-    espColorPicker:Set(Color3.fromRGB(0, 200, 255)) -- Cyan
-    
-    print("✓ Default optimization complete")
-    print("\n" .. string.rep("=", 50) .. "\n")
-end)
-
--- Smart feature linking
-local function setupSmartFeatures()
-    -- When ESP is enabled, automatically set a good color
-    espToggle.Callback = function(enabled)
-        if enabled then
-            task.wait(0.1)
-            espColorPicker:Set(Color3.fromRGB(0, 255, 100)) -- Bright green for visibility
-            print("✅ ESP activated with optimal color")
+    dragFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
         end
-    end
+    end)
     
-    -- Link speed and jump for balanced movement
-    local lastSpeed = speedSlider:Get()
-    speedSlider.Callback = function(value)
-        if value > 50 then
-            -- Auto-adjust jump power for high speeds
-            local targetJump = math.min(150, value + 30)
-            jumpSlider:Set(targetJump)
-            print("⚡ Speed-Jump balance applied")
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
         end
-        lastSpeed = value
-    end
+    end)
 end
 
--- Initialize smart features
-task.delay(1, setupSmartFeatures)
+local function AddCorner(frame, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = frame
+    return corner
+end
 
--- Performance optimization: Clean up on script end
-game:GetService("UserInputService").InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.End then
-        print("\n🛑 Cleaning up all modifications...")
-        
-        -- Reset all toggles
-        espToggle:Set(false)
-        farmToggle:Set(false)
-        flyToggle:Set(false)
-        fullbrightToggle:Set(false)
-        
-        -- Reset sliders
-        speedSlider:Set(16)
-        jumpSlider:Set(50)
-        fovSlider:Set(70)
-        
-        -- Reset lighting
-        Lighting.GlobalShadows = true
-        Lighting.Brightness = 1
-        
-        print("✓ All features reset to default")
-        print("🎮 Script cleanup complete\n")
+-- Create main window
+function Library:CreateWindow(config)
+    config = config or {}
+    config.Title = config.Title or "UI Library"
+    config.Subtitle = config.Subtitle or "by @username"
+    config.Theme = config.Theme or "Purple"
+    config.Size = config.Size or {550, 400}
+    config.ToggleKey = config.ToggleKey or Enum.KeyCode.K
+    
+    local Window = {}
+    Window.Theme = Themes[config.Theme] or Themes.Purple
+    Window.Tabs = {}
+    Window.CurrentTab = nil
+    
+    -- Create ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "CustomUILibrary"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Protection against deletion
+    pcall(function()
+        ScreenGui.Parent = CoreGui
+    end)
+    if not ScreenGui.Parent then
+        ScreenGui.Parent = player.PlayerGui
     end
-end)
+    
+    -- Main Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, config.Size[1], 0, config.Size[2])
+    MainFrame.Position = UDim2.new(0.5, -config.Size[1]/2, 0.5, -config.Size[2]/2)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
+    AddCorner(MainFrame, 12)
+    
+    -- Top Bar
+    local TopBar = Instance.new("Frame")
+    TopBar.Name = "TopBar"
+    TopBar.Size = UDim2.new(1, 0, 0, 50)
+    TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    TopBar.BorderSizePixel = 0
+    TopBar.Parent = MainFrame
+    AddCorner(TopBar, 12)
+    
+    -- Fix bottom corners of top bar
+    local TopBarFix = Instance.new("Frame")
+    TopBarFix.Size = UDim2.new(1, 0, 0, 12)
+    TopBarFix.Position = UDim2.new(0, 0, 1, -12)
+    TopBarFix.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    TopBarFix.BorderSizePixel = 0
+    TopBarFix.Parent = TopBar
+    
+    -- Title
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(0, 300, 0, 20)
+    Title.Position = UDim2.new(0, 20, 0, 8)
+    Title.BackgroundTransparency = 1
+    Title.Text = config.Title
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 18
+    Title.TextColor3 = Window.Theme.Light
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = TopBar
+    
+    -- Subtitle
+    local Subtitle = Instance.new("TextLabel")
+    Subtitle.Size = UDim2.new(0, 300, 0, 15)
+    Subtitle.Position = UDim2.new(0, 20, 0, 28)
+    Subtitle.BackgroundTransparency = 1
+    Subtitle.Text = config.Subtitle
+    Subtitle.Font = Enum.Font.Gotham
+    Subtitle.TextSize = 12
+    Subtitle.TextColor3 = Color3.fromRGB(150, 150, 160)
+    Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    Subtitle.Parent = TopBar
+    
+    -- Close Button
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 40, 0, 40)
+    CloseButton.Position = UDim2.new(1, -50, 0, 5)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    CloseButton.BorderSizePixel = 0
+    CloseButton.Text = "×"
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 24
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.Parent = TopBar
+    AddCorner(CloseButton, 8)
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    -- Tab Container (left side)
+    local TabContainer = Instance.new("Frame")
+    TabContainer.Name = "TabContainer"
+    TabContainer.Size = UDim2.new(0, 150, 1, -60)
+    TabContainer.Position = UDim2.new(0, 10, 0, 60)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.Parent = MainFrame
+    
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabLayout.Padding = UDim.new(0, 8)
+    TabLayout.Parent = TabContainer
+    
+    -- Content Container (right side)
+    local ContentContainer = Instance.new("Frame")
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Size = UDim2.new(1, -170, 1, -70)
+    ContentContainer.Position = UDim2.new(0, 165, 0, 60)
+    ContentContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    ContentContainer.BorderSizePixel = 0
+    ContentContainer.Parent = MainFrame
+    AddCorner(ContentContainer, 10)
+    
+    -- Make draggable
+    MakeDraggable(MainFrame, TopBar)
+    
+    -- Toggle UI with keybind
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == config.ToggleKey then
+            MainFrame.Visible = not MainFrame.Visible
+        end
+    end)
+    
+    Window.ScreenGui = ScreenGui
+    Window.MainFrame = MainFrame
+    Window.TabContainer = TabContainer
+    Window.ContentContainer = ContentContainer
+    
+    -- Create Tab function
+    function Window:CreateTab(name)
+        local Tab = {}
+        Tab.Name = name
+        Tab.Elements = {}
+        
+        -- Tab Button
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = name
+        TabButton.Size = UDim2.new(1, 0, 0, 40)
+        TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        TabButton.BorderSizePixel = 0
+        TabButton.Text = name
+        TabButton.Font = Enum.Font.GothamSemibold
+        TabButton.TextSize = 14
+        TabButton.TextColor3 = Color3.fromRGB(180, 180, 190)
+        TabButton.Parent = TabContainer
+        AddCorner(TabButton, 8)
+        
+        -- Tab Content (ScrollingFrame)
+        local TabContent = Instance.new("ScrollingFrame")
+        TabContent.Name = name .. "Content"
+        TabContent.Size = UDim2.new(1, -20, 1, -20)
+        TabContent.Position = UDim2.new(0, 10, 0, 10)
+        TabContent.BackgroundTransparency = 1
+        TabContent.BorderSizePixel = 0
+        TabContent.ScrollBarThickness = 4
+        TabContent.ScrollBarImageColor3 = Window.Theme.Light
+        TabContent.Visible = false
+        TabContent.Parent = ContentContainer
+        
+        local ContentLayout = Instance.new("UIListLayout")
+        ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        ContentLayout.Padding = UDim.new(0, 10)
+        ContentLayout.Parent = TabContent
+        
+        -- Auto-resize canvas
+        ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y + 10)
+        end)
+        
+        -- Switch to this tab when clicked
+        TabButton.MouseButton1Click:Connect(function()
+            for _, tab in pairs(Window.Tabs) do
+                tab.Button.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+                tab.Button.TextColor3 = Color3.fromRGB(180, 180, 190)
+                tab.Content.Visible = false
+            end
+            
+            TabButton.BackgroundColor3 = Window.Theme.Main
+            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TabContent.Visible = true
+            Window.CurrentTab = name
+        end)
+        
+        -- Auto-select first tab
+        if not Window.CurrentTab then
+            TabButton.BackgroundColor3 = Window.Theme.Main
+            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TabContent.Visible = true
+            Window.CurrentTab = name
+        end
+        
+        Tab.Button = TabButton
+        Tab.Content = TabContent
+        Window.Tabs[name] = Tab
+        
+        -- ========================================
+        -- ADD TOGGLE
+        -- ========================================
+        function Tab:AddToggle(config)
+            config = config or {}
+            config.Name = config.Name or "Toggle"
+            config.Default = config.Default or false
+            config.Callback = config.Callback or function() end
+            
+            local ToggleFrame = Instance.new("Frame")
+            ToggleFrame.Size = UDim2.new(1, 0, 0, 45)
+            ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            ToggleFrame.BorderSizePixel = 0
+            ToggleFrame.Parent = TabContent
+            AddCorner(ToggleFrame, 8)
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(1, -70, 1, 0)
+            Label.Position = UDim2.new(0, 15, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = config.Name
+            Label.Font = Enum.Font.GothamSemibold
+            Label.TextSize = 14
+            Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = ToggleFrame
+            
+            local ToggleButton = Instance.new("TextButton")
+            ToggleButton.Size = UDim2.new(0, 50, 0, 25)
+            ToggleButton.Position = UDim2.new(1, -60, 0.5, -12.5)
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+            ToggleButton.BorderSizePixel = 0
+            ToggleButton.Text = ""
+            ToggleButton.Parent = ToggleFrame
+            AddCorner(ToggleButton, 25)
+            
+            local Indicator = Instance.new("Frame")
+            Indicator.Size = UDim2.new(0, 21, 0, 21)
+            Indicator.Position = UDim2.new(0, 2, 0.5, -10.5)
+            Indicator.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+            Indicator.BorderSizePixel = 0
+            Indicator.Parent = ToggleButton
+            AddCorner(Indicator, 25)
+            
+            local toggled = config.Default
+            
+            local function UpdateToggle()
+                if toggled then
+                    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Window.Theme.Main}):Play()
+                    TweenService:Create(Indicator, TweenInfo.new(0.2), {Position = UDim2.new(1, -23, 0.5, -10.5)}):Play()
+                else
+                    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+                    TweenService:Create(Indicator, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, -10.5)}):Play()
+                end
+            end
+            
+            UpdateToggle()
+            
+            ToggleButton.MouseButton1Click:Connect(function()
+                toggled = not toggled
+                UpdateToggle()
+                pcall(config.Callback, toggled)
+            end)
+            
+            -- Return control object
+            return {
+                Set = function(_, value)
+                    toggled = value
+                    UpdateToggle()
+                    pcall(config.Callback, toggled)
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD SLIDER
+        -- ========================================
+        function Tab:AddSlider(config)
+            config = config or {}
+            config.Name = config.Name or "Slider"
+            config.Min = config.Min or 0
+            config.Max = config.Max or 100
+            config.Default = config.Default or 50
+            config.Increment = config.Increment or 1
+            config.Suffix = config.Suffix or ""
+            config.Callback = config.Callback or function() end
+            
+            local SliderFrame = Instance.new("Frame")
+            SliderFrame.Size = UDim2.new(1, 0, 0, 60)
+            SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            SliderFrame.BorderSizePixel = 0
+            SliderFrame.Parent = TabContent
+            AddCorner(SliderFrame, 8)
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(0.6, 0, 0, 20)
+            Label.Position = UDim2.new(0, 15, 0, 8)
+            Label.BackgroundTransparency = 1
+            Label.Text = config.Name
+            Label.Font = Enum.Font.GothamSemibold
+            Label.TextSize = 14
+            Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = SliderFrame
+            
+            local ValueLabel = Instance.new("TextLabel")
+            ValueLabel.Size = UDim2.new(0.3, 0, 0, 20)
+            ValueLabel.Position = UDim2.new(0.7, -15, 0, 8)
+            ValueLabel.BackgroundTransparency = 1
+            ValueLabel.Text = tostring(config.Default) .. config.Suffix
+            ValueLabel.Font = Enum.Font.GothamBold
+            ValueLabel.TextSize = 13
+            ValueLabel.TextColor3 = Window.Theme.Light
+            ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            ValueLabel.Parent = SliderFrame
+            
+            local SliderBar = Instance.new("Frame")
+            SliderBar.Size = UDim2.new(1, -30, 0, 6)
+            SliderBar.Position = UDim2.new(0, 15, 1, -20)
+            SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+            SliderBar.BorderSizePixel = 0
+            SliderBar.Parent = SliderFrame
+            AddCorner(SliderBar, 10)
+            
+            local SliderFill = Instance.new("Frame")
+            SliderFill.Size = UDim2.new(0, 0, 1, 0)
+            SliderFill.BackgroundColor3 = Window.Theme.Main
+            SliderFill.BorderSizePixel = 0
+            SliderFill.Parent = SliderBar
+            AddCorner(SliderFill, 10)
+            
+            local dragging = false
+            local currentValue = config.Default
+            
+            local function UpdateSlider(input)
+                local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+                local value = config.Min + (config.Max - config.Min) * pos
+                value = math.floor(value / config.Increment + 0.5) * config.Increment
+                currentValue = value
+                
+                SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+                ValueLabel.Text = tostring(value) .. config.Suffix
+                
+                pcall(config.Callback, value)
+            end
+            
+            SliderBar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = true
+                    UpdateSlider(input)
+                end
+            end)
+            
+            SliderBar.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    UpdateSlider(input)
+                end
+            end)
+            
+            -- Initialize position
+            local initPos = (currentValue - config.Min) / (config.Max - config.Min)
+            SliderFill.Size = UDim2.new(initPos, 0, 1, 0)
+            
+            -- Return control object
+            return {
+                Set = function(_, value)
+                    value = math.clamp(value, config.Min, config.Max)
+                    currentValue = value
+                    local pos = (value - config.Min) / (config.Max - config.Min)
+                    SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+                    ValueLabel.Text = tostring(value) .. config.Suffix
+                    pcall(config.Callback, value)
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD BUTTON
+        -- ========================================
+        function Tab:AddButton(config)
+            config = config or {}
+            config.Name = config.Name or "Button"
+            config.Callback = config.Callback or function() end
+            
+            local ButtonFrame = Instance.new("TextButton")
+            ButtonFrame.Size = UDim2.new(1, 0, 0, 40)
+            ButtonFrame.BackgroundColor3 = Window.Theme.Main
+            ButtonFrame.BorderSizePixel = 0
+            ButtonFrame.Text = config.Name
+            ButtonFrame.Font = Enum.Font.GothamBold
+            ButtonFrame.TextSize = 14
+            ButtonFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ButtonFrame.Parent = TabContent
+            AddCorner(ButtonFrame, 8)
+            
+            ButtonFrame.MouseButton1Click:Connect(function()
+                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Window.Theme.Dark}):Play()
+                wait(0.1)
+                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Window.Theme.Main}):Play()
+                pcall(config.Callback)
+            end)
+        end
+        
+        -- ========================================
+        -- ADD KEYBIND
+        -- ========================================
+        function Tab:AddKeybind(config)
+            config = config or {}
+            config.Name = config.Name or "Keybind"
+            config.Default = config.Default or Enum.KeyCode.E
+            config.Callback = config.Callback or function() end
+            
+            local KeybindFrame = Instance.new("Frame")
+            KeybindFrame.Size = UDim2.new(1, 0, 0, 45)
+            KeybindFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            KeybindFrame.BorderSizePixel = 0
+            KeybindFrame.Parent = TabContent
+            AddCorner(KeybindFrame, 8)
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(0.5, 0, 1, 0)
+            Label.Position = UDim2.new(0, 15, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = config.Name
+            Label.Font = Enum.Font.GothamSemibold
+            Label.TextSize = 14
+            Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = KeybindFrame
+            
+            local KeyButton = Instance.new("TextButton")
+            KeyButton.Size = UDim2.new(0, 80, 0, 28)
+            KeyButton.Position = UDim2.new(1, -90, 0.5, -14)
+            KeyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+            KeyButton.BorderSizePixel = 0
+            KeyButton.Text = config.Default.Name
+            KeyButton.Font = Enum.Font.GothamBold
+            KeyButton.TextSize = 12
+            KeyButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+            KeyButton.Parent = KeybindFrame
+            AddCorner(KeyButton, 6)
+            
+            local listening = false
+            local currentKey = config.Default
+            
+            KeyButton.MouseButton1Click:Connect(function()
+                listening = true
+                KeyButton.Text = "..."
+                KeyButton.BackgroundColor3 = Window.Theme.Main
+            end)
+            
+            UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if listening and not gameProcessed then
+                    if input.UserInputType == Enum.UserInputType.Keyboard then
+                        currentKey = input.KeyCode
+                        KeyButton.Text = input.KeyCode.Name
+                        KeyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+                        listening = false
+                        pcall(config.Callback, input.KeyCode)
+                    end
+                end
+            end)
+            
+            -- Return control object
+            return {
+                Set = function(_, key)
+                    currentKey = key
+                    KeyButton.Text = key.Name
+                    pcall(config.Callback, key)
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD DROPDOWN
+        -- ========================================
+        function Tab:AddDropdown(config)
+            config = config or {}
+            config.Name = config.Name or "Dropdown"
+            config.Options = config.Options or {"Option 1", "Option 2"}
+            config.Default = config.Default or config.Options[1]
+            config.Callback = config.Callback or function() end
+            
+            local DropdownFrame = Instance.new("Frame")
+            DropdownFrame.Size = UDim2.new(1, 0, 0, 45)
+            DropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            DropdownFrame.BorderSizePixel = 0
+            DropdownFrame.Parent = TabContent
+            DropdownFrame.ClipsDescendants = true
+            AddCorner(DropdownFrame, 8)
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(0.5, 0, 0, 45)
+            Label.Position = UDim2.new(0, 15, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = config.Name
+            Label.Font = Enum.Font.GothamSemibold
+            Label.TextSize = 14
+            Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = DropdownFrame
+            
+            local DropButton = Instance.new("TextButton")
+            DropButton.Size = UDim2.new(0, 140, 0, 28)
+            DropButton.Position = UDim2.new(1, -150, 0, 8.5)
+            DropButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+            DropButton.BorderSizePixel = 0
+            DropButton.Text = config.Default .. " ▼"
+            DropButton.Font = Enum.Font.GothamSemibold
+            DropButton.TextSize = 12
+            DropButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+            DropButton.Parent = DropdownFrame
+            AddCorner(DropButton, 6)
+            
+            local OptionsList = Instance.new("Frame")
+            OptionsList.Size = UDim2.new(0, 140, 0, 0)
+            OptionsList.Position = UDim2.new(1, -150, 0, 45)
+            OptionsList.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+            OptionsList.BorderSizePixel = 0
+            OptionsList.Visible = false
+            OptionsList.Parent = DropdownFrame
+            AddCorner(OptionsList, 6)
+            
+            local OptionsLayout = Instance.new("UIListLayout")
+            OptionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            OptionsLayout.Padding = UDim.new(0, 2)
+            OptionsLayout.Parent = OptionsList
+            
+            local expanded = false
+            local currentOption = config.Default
+            
+            DropButton.MouseButton1Click:Connect(function()
+                expanded = not expanded
+                
+                if expanded then
+                    OptionsList.Visible = true
+                    local newSize = #config.Options * 30
+                    TweenService:Create(DropdownFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 45 + newSize + 10)}):Play()
+                    TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, newSize)}):Play()
+                    DropButton.Text = currentOption .. " ▲"
+                else
+                    TweenService:Create(DropdownFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 45)}):Play()
+                    TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, 0)}):Play()
+                    wait(0.2)
+                    OptionsList.Visible = false
+                    DropButton.Text = currentOption .. " ▼"
+                end
+            end)
+            
+            for _, option in ipairs(config.Options) do
+                local OptionButton = Instance.new("TextButton")
+                OptionButton.Size = UDim2.new(1, 0, 0, 28)
+                OptionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+                OptionButton.BorderSizePixel = 0
+                OptionButton.Text = option
+                OptionButton.Font = Enum.Font.Gotham
+                OptionButton.TextSize = 12
+                OptionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+                OptionButton.Parent = OptionsList
+                AddCorner(OptionButton, 4)
+                
+                OptionButton.MouseButton1Click:Connect(function()
+                    currentOption = option
+                    DropButton.Text = option .. " ▼"
+                    expanded = false
+                    TweenService:Create(DropdownFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 45)}):Play()
+                    TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, 0)}):Play()
+                    wait(0.2)
+                    OptionsList.Visible = false
+                    pcall(config.Callback, option)
+                end)
+            end
+            
+            return {
+                Set = function(_, option)
+                    currentOption = option
+                    DropButton.Text = option .. " ▼"
+                    pcall(config.Callback, option)
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD TEXTBOX
+        -- ========================================
+        function Tab:AddTextbox(config)
+            config = config or {}
+            config.Name = config.Name or "Textbox"
+            config.Default = config.Default or ""
+            config.PlaceholderText = config.PlaceholderText or "Enter text..."
+            config.ClearOnFocus = config.ClearOnFocus or false
+            config.Callback = config.Callback or function() end
+            
+            local TextboxFrame = Instance.new("Frame")
+            TextboxFrame.Size = UDim2.new(1, 0, 0, 45)
+            TextboxFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            TextboxFrame.BorderSizePixel = 0
+            TextboxFrame.Parent = TabContent
+            AddCorner(TextboxFrame, 8)
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(0.4, 0, 1, 0)
+            Label.Position = UDim2.new(0, 15, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = config.Name
+            Label.Font = Enum.Font.GothamSemibold
+            Label.TextSize = 14
+            Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = TextboxFrame
+            
+            local Textbox = Instance.new("TextBox")
+            Textbox.Size = UDim2.new(0, 160, 0, 28)
+            Textbox.Position = UDim2.new(1, -170, 0.5, -14)
+            Textbox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+            Textbox.BorderSizePixel = 0
+            Textbox.Text = config.Default
+            Textbox.PlaceholderText = config.PlaceholderText
+            Textbox.Font = Enum.Font.Gotham
+            Textbox.TextSize = 12
+            Textbox.TextColor3 = Color3.fromRGB(200, 200, 210)
+            Textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+            Textbox.ClearButtonEnabled = true
+            Textbox.Parent = TextboxFrame
+            AddCorner(Textbox, 6)
+            
+            if config.ClearOnFocus then
+                Textbox.Focused:Connect(function()
+                    Textbox.Text = ""
+                end)
+            end
+            
+            Textbox.FocusLost:Connect(function(enterPressed)
+                if enterPressed then
+                    pcall(config.Callback, Textbox.Text)
+                end
+            end)
+            
+            return {
+                Set = function(_, text)
+                    Textbox.Text = text
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD COLOR PICKER
+        -- ========================================
+        function Tab:AddColorPicker(config)
+            config = config or {}
+            config.Name = config.Name or "Color Picker"
+            config.Default = config.Default or Color3.fromRGB(255, 255, 255)
+            config.Callback = config.Callback or function() end
+            
+            local ColorFrame = Instance.new("Frame")
+            ColorFrame.Size = UDim2.new(1, 0, 0, 45)
+            ColorFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            ColorFrame.BorderSizePixel = 0
+            ColorFrame.Parent = TabContent
+            AddCorner(ColorFrame, 8)
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(0.6, 0, 1, 0)
+            Label.Position = UDim2.new(0, 15, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = config.Name
+            Label.Font = Enum.Font.GothamSemibold
+            Label.TextSize = 14
+            Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = ColorFrame
+            
+            local ColorDisplay = Instance.new("Frame")
+            ColorDisplay.Size = UDim2.new(0, 40, 0, 28)
+            ColorDisplay.Position = UDim2.new(1, -50, 0.5, -14)
+            ColorDisplay.BackgroundColor3 = config.Default
+            ColorDisplay.BorderSizePixel = 0
+            ColorDisplay.Parent = ColorFrame
+            AddCorner(ColorDisplay, 6)
+            
+            local ColorButton = Instance.new("TextButton")
+            ColorButton.Size = UDim2.new(1, 0, 1, 0)
+            ColorButton.BackgroundTransparency = 1
+            ColorButton.Text = ""
+            ColorButton.Parent = ColorDisplay
+            
+            local currentColor = config.Default
+            
+            ColorButton.MouseButton1Click:Connect(function()
+                -- Simple RGB slider popup (simplified version)
+                local r = math.floor(currentColor.R * 255)
+                local g = math.floor(currentColor.G * 255)
+                local b = math.floor(currentColor.B * 255)
+                
+                -- Cycle through preset colors for simplicity
+                local colors = {
+                    Color3.fromRGB(255, 0, 0),
+                    Color3.fromRGB(0, 255, 0),
+                    Color3.fromRGB(0, 0, 255),
+                    Color3.fromRGB(255, 255, 0),
+                    Color3.fromRGB(255, 0, 255),
+                    Color3.fromRGB(0, 255, 255),
+                    Color3.fromRGB(255, 255, 255),
+                    Color3.fromRGB(0, 0, 0)
+                }
+                
+                local index = 1
+                for i, color in ipairs(colors) do
+                    if color == currentColor then
+                        index = i
+                        break
+                    end
+                end
+                
+                index = index % #colors + 1
+                currentColor = colors[index]
+                ColorDisplay.BackgroundColor3 = currentColor
+                pcall(config.Callback, currentColor)
+            end)
+            
+            return {
+                Set = function(_, color)
+                    currentColor = color
+                    ColorDisplay.BackgroundColor3 = color
+                    pcall(config.Callback, color)
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD LABEL
+        -- ========================================
+        function Tab:AddLabel(text)
+            local LabelFrame = Instance.new("Frame")
+            LabelFrame.Size = UDim2.new(1, 0, 0, 30)
+            LabelFrame.BackgroundTransparency = 1
+            LabelFrame.Parent = TabContent
+            
+            local Label = Instance.new("TextLabel")
+            Label.Size = UDim2.new(1, -20, 1, 0)
+            Label.Position = UDim2.new(0, 10, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.Text = text
+            Label.Font = Enum.Font.Gotham
+            Label.TextSize = 13
+            Label.TextColor3 = Color3.fromRGB(180, 180, 190)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.TextWrapped = true
+            Label.Parent = LabelFrame
+            
+            return {
+                Set = function(_, newText)
+                    Label.Text = newText
+                end
+            }
+        end
+        
+        -- ========================================
+        -- ADD DIVIDER
+        -- ========================================
+        function Tab:AddDivider()
+            local DividerFrame = Instance.new("Frame")
+            DividerFrame.Size = UDim2.new(1, 0, 0, 10)
+            DividerFrame.BackgroundTransparency = 1
+            DividerFrame.Parent = TabContent
+            
+            local Line = Instance.new("Frame")
+            Line.Size = UDim2.new(1, -20, 0, 2)
+            Line.Position = UDim2.new(0, 10, 0.5, -1)
+            Line.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+            Line.BorderSizePixel = 0
+            Line.Parent = DividerFrame
+        end
+        
+        return Tab
+    end
+    
+    return Window
+end
 
--- Final message
-print("🔧 Game Enhancer Initializing...")
-print("📋 Loaded 4 tabs with 15+ features")
-print("🎯 Press 'Insert' to open menu")
-print("🛑 Press 'End' to reset everything")
-
-return {
-    Window = Window,
-    Tabs = {
-        Game = GameTab,
-        Visual = VisualTab,
-        Player = PlayerTab,
-        Utility = UtilityTab
-    },
-    Features = {
-        ESP = espToggle,
-        Speed = speedSlider,
-        Jump = jumpSlider,
-        Flight = flyToggle
-    }
-}
+return Library
