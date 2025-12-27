@@ -1,12 +1,13 @@
 -- ========================================
 -- CUSTOM UI LIBRARY
 -- A fully reusable UI library for Roblox exploits
+-- Now with Debugger Window
 -- ========================================
 
 --[[
     HOW TO USE:
     
-    local Library = loadstring(game:HttpGet("your_library_url_here"))()
+    local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/CreativeUsername228/Den-s-GUI-Library/refs/heads/main/Lua%20UI"))()
     
     local Window = Library:CreateWindow({
         Title = "My Script",
@@ -16,7 +17,16 @@
         ToggleKey = Enum.KeyCode.K
     })
     
+    -- New: Debugger automatically created
+    -- Access it via: Library.Debugger
+    
+    -- Add debugger toggle to any tab:
+    Library:CreateDebuggerToggle(Tab)
+    
     local Tab = Window:CreateTab("Tab Name")
+    local MiscTab = Window:CreateTab("Misc")
+    
+    Library:CreateDebuggerToggle(MiscTab) -- Adds debugger toggle to Misc tab
     
     Tab:AddToggle({
         Name = "Toggle Name",
@@ -25,64 +35,6 @@
             print(value)
         end
     })
-    
-    Tab:AddSlider({
-        Name = "Slider Name",
-        Min = 0,
-        Max = 100,
-        Default = 50,
-        Increment = 1,
-        Suffix = "%",
-        Callback = function(value)
-            print(value)
-        end
-    })
-    
-    Tab:AddButton({
-        Name = "Button Name",
-        Callback = function()
-            print("clicked!")
-        end
-    })
-    
-    Tab:AddKeybind({
-        Name = "Keybind Name",
-        Default = Enum.KeyCode.E,
-        Callback = function(key)
-            print(key)
-        end
-    })
-    
-    Tab:AddDropdown({
-        Name = "Dropdown Name",
-        Options = {"Option 1", "Option 2", "Option 3"},
-        Default = "Option 1",
-        Callback = function(value)
-            print(value)
-        end
-    })
-    
-    Tab:AddTextbox({
-        Name = "Textbox Name",
-        Default = "Enter text...",
-        PlaceholderText = "Type here",
-        ClearOnFocus = false,
-        Callback = function(value)
-            print(value)
-        end
-    })
-    
-    Tab:AddColorPicker({
-        Name = "Color Picker",
-        Default = Color3.fromRGB(255, 255, 255),
-        Callback = function(color)
-            print(color)
-        end
-    })
-    
-    Tab:AddLabel("This is a label!")
-    
-    Tab:AddDivider()
 --]]
 
 local Library = {}
@@ -102,33 +54,50 @@ local Themes = {
     Purple = {
         Main = Color3.fromRGB(120, 80, 160),
         Light = Color3.fromRGB(150, 100, 200),
-        Dark = Color3.fromRGB(100, 60, 140)
+        Dark = Color3.fromRGB(100, 60, 140),
+        Debug = Color3.fromRGB(160, 90, 210)
     },
     Blue = {
         Main = Color3.fromRGB(80, 120, 200),
         Light = Color3.fromRGB(100, 150, 230),
-        Dark = Color3.fromRGB(60, 100, 170)
+        Dark = Color3.fromRGB(60, 100, 170),
+        Debug = Color3.fromRGB(100, 140, 220)
     },
     Red = {
         Main = Color3.fromRGB(200, 80, 80),
         Light = Color3.fromRGB(230, 100, 100),
-        Dark = Color3.fromRGB(170, 60, 60)
+        Dark = Color3.fromRGB(170, 60, 60),
+        Debug = Color3.fromRGB(220, 100, 100)
     },
     Green = {
         Main = Color3.fromRGB(80, 200, 120),
         Light = Color3.fromRGB(100, 230, 150),
-        Dark = Color3.fromRGB(60, 170, 100)
+        Dark = Color3.fromRGB(60, 170, 100),
+        Debug = Color3.fromRGB(90, 210, 130)
     },
     Orange = {
         Main = Color3.fromRGB(220, 140, 60),
         Light = Color3.fromRGB(240, 160, 80),
-        Dark = Color3.fromRGB(190, 120, 50)
+        Dark = Color3.fromRGB(190, 120, 50),
+        Debug = Color3.fromRGB(230, 150, 70)
     },
     Pink = {
         Main = Color3.fromRGB(220, 100, 160),
         Light = Color3.fromRGB(240, 130, 190),
-        Dark = Color3.fromRGB(190, 80, 140)
+        Dark = Color3.fromRGB(190, 80, 140),
+        Debug = Color3.fromRGB(230, 110, 170)
     }
+}
+
+-- Debugger configuration
+local DebugConfig = {
+    DefaultPosition = UDim2.new(1, -320, 0, 20),  -- Top right corner
+    DefaultSize = {300, 250},
+    MaxLogs = 50,
+    AutoScroll = true,
+    ShowTimestamp = true,
+    ShowErrorLevel = true,
+    DefaultVisible = true
 }
 
 -- Utility functions
@@ -175,6 +144,463 @@ local function AddCorner(frame, radius)
     return corner
 end
 
+local function AddStroke(frame, thickness, color)
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = thickness or 1
+    stroke.Color = color or Color3.fromRGB(0, 0, 0)
+    stroke.Parent = frame
+    return stroke
+end
+
+-- ========================================
+-- DEBUGGER SYSTEM
+-- ========================================
+Library.Debugger = {
+    Logs = {},
+    ErrorCount = 0,
+    WarningCount = 0,
+    InfoCount = 0
+}
+
+function Library:CreateDebugger()
+    if self.Debugger.Window then
+        return self.Debugger.Window
+    end
+    
+    -- Create Debugger ScreenGui
+    local DebugGui = Instance.new("ScreenGui")
+    DebugGui.Name = "CustomUIDebugger"
+    DebugGui.ResetOnSpawn = false
+    DebugGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    DebugGui.Parent = CoreGui
+    
+    -- Debugger Main Frame
+    local DebugFrame = Instance.new("Frame")
+    DebugFrame.Name = "DebugFrame"
+    DebugFrame.Size = UDim2.new(0, DebugConfig.DefaultSize[1], 0, DebugConfig.DefaultSize[2])
+    DebugFrame.Position = DebugConfig.DefaultPosition
+    DebugFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    DebugFrame.BorderSizePixel = 0
+    DebugFrame.Visible = DebugConfig.DefaultVisible
+    DebugFrame.Parent = DebugGui
+    AddCorner(DebugFrame, 10)
+    AddStroke(DebugFrame, 1, Color3.fromRGB(60, 60, 70))
+    
+    -- Debugger Top Bar
+    local DebugTopBar = Instance.new("Frame")
+    DebugTopBar.Name = "DebugTopBar"
+    DebugTopBar.Size = UDim2.new(1, 0, 0, 32)
+    DebugTopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    DebugTopBar.BorderSizePixel = 0
+    DebugTopBar.Parent = DebugFrame
+    AddCorner(DebugTopBar, 10)
+    
+    -- Title
+    local DebugTitle = Instance.new("TextLabel")
+    DebugTitle.Size = UDim2.new(0.7, 0, 1, 0)
+    DebugTitle.Position = UDim2.new(0, 10, 0, 0)
+    DebugTitle.BackgroundTransparency = 1
+    DebugTitle.Text = "📊 Debug Console"
+    DebugTitle.Font = Enum.Font.GothamBold
+    DebugTitle.TextSize = 14
+    DebugTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
+    DebugTitle.TextXAlignment = Enum.TextXAlignment.Left
+    DebugTitle.Parent = DebugTopBar
+    
+    -- Status Indicators
+    local ErrorIndicator = Instance.new("TextLabel")
+    ErrorIndicator.Size = UDim2.new(0, 40, 0, 20)
+    ErrorIndicator.Position = UDim2.new(0.7, 5, 0.5, -10)
+    ErrorIndicator.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    ErrorIndicator.Text = "E:0"
+    ErrorIndicator.Font = Enum.Font.GothamBold
+    ErrorIndicator.TextSize = 11
+    ErrorIndicator.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ErrorIndicator.Parent = DebugTopBar
+    AddCorner(ErrorIndicator, 4)
+    
+    local WarningIndicator = Instance.new("TextLabel")
+    WarningIndicator.Size = UDim2.new(0, 40, 0, 20)
+    WarningIndicator.Position = UDim2.new(0.8, 5, 0.5, -10)
+    WarningIndicator.BackgroundColor3 = Color3.fromRGB(220, 140, 60)
+    WarningIndicator.Text = "W:0"
+    WarningIndicator.Font = Enum.Font.GothamBold
+    WarningIndicator.TextSize = 11
+    WarningIndicator.TextColor3 = Color3.fromRGB(255, 255, 255)
+    WarningIndicator.Parent = DebugTopBar
+    AddCorner(WarningIndicator, 4)
+    
+    -- Close Button
+    local DebugCloseButton = Instance.new("TextButton")
+    DebugCloseButton.Size = UDim2.new(0, 30, 0, 30)
+    DebugCloseButton.Position = UDim2.new(1, -35, 0, 1)
+    DebugCloseButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    DebugCloseButton.BorderSizePixel = 0
+    DebugCloseButton.Text = "×"
+    DebugCloseButton.Font = Enum.Font.GothamBold
+    DebugCloseButton.TextSize = 18
+    DebugCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DebugCloseButton.Parent = DebugTopBar
+    AddCorner(DebugCloseButton, 6)
+    
+    DebugCloseButton.MouseButton1Click:Connect(function()
+        DebugFrame.Visible = false
+    end)
+    
+    -- Logs Container
+    local LogsContainer = Instance.new("ScrollingFrame")
+    LogsContainer.Name = "LogsContainer"
+    LogsContainer.Size = UDim2.new(1, -10, 1, -42)
+    LogsContainer.Position = UDim2.new(0, 5, 0, 37)
+    LogsContainer.BackgroundTransparency = 1
+    LogsContainer.BorderSizePixel = 0
+    LogsContainer.ScrollBarThickness = 4
+    LogsContainer.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+    LogsContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    LogsContainer.Parent = DebugFrame
+    
+    local LogsLayout = Instance.new("UIListLayout")
+    LogsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    LogsLayout.Padding = UDim.new(0, 3)
+    LogsLayout.Parent = LogsContainer
+    
+    -- Control Buttons
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Size = UDim2.new(1, 0, 0, 30)
+    ControlFrame.Position = UDim2.new(0, 0, 1, -30)
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Parent = DebugFrame
+    
+    local ClearButton = Instance.new("TextButton")
+    ClearButton.Size = UDim2.new(0.3, -5, 0, 25)
+    ClearButton.Position = UDim2.new(0.02, 0, 0, 2)
+    ClearButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    ClearButton.BorderSizePixel = 0
+    ClearButton.Text = "🧹 Clear"
+    ClearButton.Font = Enum.Font.GothamSemibold
+    ClearButton.TextSize = 12
+    ClearButton.TextColor3 = Color3.fromRGB(220, 220, 230)
+    ClearButton.Parent = ControlFrame
+    AddCorner(ClearButton, 5)
+    
+    local CopyButton = Instance.new("TextButton")
+    CopyButton.Size = UDim2.new(0.3, -5, 0, 25)
+    CopyButton.Position = UDim2.new(0.35, 0, 0, 2)
+    CopyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    CopyButton.BorderSizePixel = 0
+    CopyButton.Text = "📋 Copy"
+    CopyButton.Font = Enum.Font.GothamSemibold
+    CopyButton.TextSize = 12
+    CopyButton.TextColor3 = Color3.fromRGB(220, 220, 230)
+    CopyButton.Parent = ControlFrame
+    AddCorner(CopyButton, 5)
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0.3, -5, 0, 25)
+    ToggleButton.Position = UDim2.new(0.68, 0, 0, 2)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Text = "👁️ Hide"
+    ToggleButton.Font = Enum.Font.GothamSemibold
+    ToggleButton.TextSize = 12
+    ToggleButton.TextColor3 = Color3.fromRGB(220, 220, 230)
+    ToggleButton.Parent = ControlFrame
+    AddCorner(ToggleButton, 5)
+    
+    -- Make draggable
+    MakeDraggable(DebugFrame, DebugTopBar)
+    
+    -- Store references
+    self.Debugger.Window = {
+        Gui = DebugGui,
+        Frame = DebugFrame,
+        LogsContainer = LogsContainer,
+        ErrorIndicator = ErrorIndicator,
+        WarningIndicator = WarningIndicator,
+        Title = DebugTitle
+    }
+    
+    -- Button functionality
+    ClearButton.MouseButton1Click:Connect(function()
+        self.Debugger:ClearLogs()
+    end)
+    
+    CopyButton.MouseButton1Click:Connect(function()
+        self.Debugger:CopyLogs()
+    end)
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        DebugFrame.Visible = not DebugFrame.Visible
+        ToggleButton.Text = DebugFrame.Visible and "👁️ Hide" or "👁️ Show"
+    end)
+    
+    return self.Debugger.Window
+end
+
+-- Debugger methods
+function Library.Debugger:Log(message, level, source)
+    level = level or "INFO"
+    source = source or "Script"
+    
+    local timestamp = os.date("%H:%M:%S")
+    local logEntry = {
+        Message = message,
+        Level = level:upper(),
+        Source = source,
+        Timestamp = timestamp,
+        Color = self:GetLevelColor(level)
+    }
+    
+    table.insert(self.Logs, logEntry)
+    
+    -- Update counters
+    if level == "ERROR" then
+        self.ErrorCount = self.ErrorCount + 1
+        if self.Window and self.Window.ErrorIndicator then
+            self.Window.ErrorIndicator.Text = "E:" .. self.ErrorCount
+        end
+    elseif level == "WARNING" then
+        self.WarningCount = self.WarningCount + 1
+        if self.Window and self.Window.WarningIndicator then
+            self.Window.WarningIndicator.Text = "W:" .. self.WarningCount
+        end
+    else
+        self.InfoCount = self.InfoCount + 1
+    end
+    
+    -- Trim logs if too many
+    if #self.Logs > DebugConfig.MaxLogs then
+        table.remove(self.Logs, 1)
+    end
+    
+    -- Update UI
+    self:UpdateLogDisplay()
+    
+    -- Also print to console
+    local formattedMessage = string.format("[%s] [%s] %s: %s", timestamp, level, source, message)
+    print(formattedMessage)
+    
+    return logEntry
+end
+
+function Library.Debugger:GetLevelColor(level)
+    level = level:upper()
+    if level == "ERROR" then
+        return Color3.fromRGB(255, 100, 100)
+    elseif level == "WARNING" then
+        return Color3.fromRGB(255, 200, 100)
+    elseif level == "SUCCESS" then
+        return Color3.fromRGB(100, 255, 100)
+    else
+        return Color3.fromRGB(200, 200, 200)
+    end
+end
+
+function Library.Debugger:UpdateLogDisplay()
+    if not self.Window or not self.Window.LogsContainer then
+        return
+    end
+    
+    -- Clear existing logs
+    for _, child in ipairs(self.Window.LogsContainer:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add logs (newest first)
+    for i = #self.Logs, 1, -1 do
+        local log = self.Logs[i]
+        self:CreateLogEntry(log)
+    end
+    
+    -- Auto-scroll to bottom
+    if DebugConfig.AutoScroll then
+        task.wait()
+        self.Window.LogsContainer.CanvasPosition = Vector2.new(0, self.Window.LogsContainer.CanvasSize.Y.Offset)
+    end
+end
+
+function Library.Debugger:CreateLogEntry(log)
+    local LogEntry = Instance.new("Frame")
+    LogEntry.Size = UDim2.new(1, 0, 0, 24)
+    LogEntry.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    LogEntry.BackgroundTransparency = 0.5
+    LogEntry.BorderSizePixel = 0
+    LogEntry.Parent = self.Window.LogsContainer
+    AddCorner(LogEntry, 4)
+    
+    -- Level indicator
+    local LevelIndicator = Instance.new("Frame")
+    LevelIndicator.Size = UDim2.new(0, 4, 1, 0)
+    LevelIndicator.BackgroundColor3 = log.Color
+    LevelIndicator.BorderSizePixel = 0
+    LevelIndicator.Parent = LogEntry
+    
+    -- Level text
+    local LevelText = Instance.new("TextLabel")
+    LevelText.Size = UDim2.new(0, 50, 1, 0)
+    LevelText.Position = UDim2.new(0, 6, 0, 0)
+    LevelText.BackgroundTransparency = 1
+    LevelText.Text = string.sub(log.Level, 1, 4)
+    LevelText.Font = Enum.Font.GothamBold
+    LevelText.TextSize = 10
+    LevelText.TextColor3 = log.Color
+    LevelText.TextXAlignment = Enum.TextXAlignment.Left
+    LevelText.Parent = LogEntry
+    
+    -- Timestamp
+    local TimeText = Instance.new("TextLabel")
+    TimeText.Size = UDim2.new(0, 50, 1, 0)
+    TimeText.Position = UDim2.new(0, 60, 0, 0)
+    TimeText.BackgroundTransparency = 1
+    TimeText.Text = log.Timestamp
+    TimeText.Font = Enum.Font.Gotham
+    TimeText.TextSize = 10
+    TimeText.TextColor3 = Color3.fromRGB(150, 150, 160)
+    TimeText.TextXAlignment = Enum.TextXAlignment.Left
+    TimeText.Parent = LogEntry
+    
+    -- Message
+    local MessageText = Instance.new("TextLabel")
+    MessageText.Size = UDim2.new(1, -120, 1, 0)
+    MessageText.Position = UDim2.new(0, 115, 0, 0)
+    MessageText.BackgroundTransparency = 1
+    MessageText.Text = log.Message
+    MessageText.Font = Enum.Font.Gotham
+    MessageText.TextSize = 10
+    MessageText.TextColor3 = Color3.fromRGB(220, 220, 230)
+    MessageText.TextXAlignment = Enum.TextXAlignment.Left
+    MessageText.TextTruncate = Enum.TextTruncate.AtEnd
+    MessageText.Parent = LogEntry
+    
+    -- Tooltip for full message
+    MessageText.MouseEnter:Connect(function()
+        local Tooltip = Instance.new("TextLabel")
+        Tooltip.Text = log.Message
+        Tooltip.Size = UDim2.new(0, 200, 0, 0)
+        Tooltip.Position = UDim2.new(0, 0, 1, 2)
+        Tooltip.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        Tooltip.TextColor3 = Color3.fromRGB(220, 220, 230)
+        Tooltip.Font = Enum.Font.Gotham
+        Tooltip.TextSize = 10
+        Tooltip.TextWrapped = true
+        Tooltip.ZIndex = 100
+        Tooltip.AutomaticSize = Enum.AutomaticSize.Y
+        Tooltip.Parent = MessageText
+        AddCorner(Tooltip, 4)
+        AddStroke(Tooltip, 1, Color3.fromRGB(60, 60, 70))
+    end)
+    
+    MessageText.MouseLeave:Connect(function()
+        for _, child in ipairs(MessageText:GetChildren()) do
+            child:Destroy()
+        end
+    end)
+end
+
+function Library.Debugger:ClearLogs()
+    self.Logs = {}
+    self.ErrorCount = 0
+    self.WarningCount = 0
+    self.InfoCount = 0
+    
+    if self.Window then
+        if self.Window.ErrorIndicator then
+            self.Window.ErrorIndicator.Text = "E:0"
+        end
+        if self.Window.WarningIndicator then
+            self.Window.WarningIndicator.Text = "W:0"
+        end
+        self:UpdateLogDisplay()
+    end
+    
+    self:Log("Logs cleared", "INFO", "Debugger")
+end
+
+function Library.Debugger:CopyLogs()
+    local logText = ""
+    for i, log in ipairs(self.Logs) do
+        logText = logText .. string.format("[%s] [%s] %s\n", log.Timestamp, log.Level, log.Message)
+    end
+    
+    -- For Roblox, we'd need to use setclipboard if available
+    pcall(function()
+        setclipboard(logText)
+    end)
+    
+    self:Log("Logs copied to clipboard", "SUCCESS", "Debugger")
+end
+
+function Library.Debugger:Error(message, source)
+    return self:Log(message, "ERROR", source)
+end
+
+function Library.Debugger:Warning(message, source)
+    return self:Log(message, "WARNING", source)
+end
+
+function Library.Debugger:Success(message, source)
+    return self:Log(message, "SUCCESS", source)
+end
+
+function Library.Debugger:Info(message, source)
+    return self:Log(message, "INFO", source)
+end
+
+-- Create debugger toggle for any tab
+function Library:CreateDebuggerToggle(tab)
+    if not tab or not tab.AddToggle then
+        self.Debugger:Error("Invalid tab provided for debugger toggle", "Library")
+        return nil
+    end
+    
+    local toggle = tab:AddToggle({
+        Name = "Debug Console",
+        Default = DebugConfig.DefaultVisible,
+        Callback = function(value)
+            if self.Debugger.Window and self.Debugger.Window.Frame then
+                self.Debugger.Window.Frame.Visible = value
+                self.Debugger:Log(
+                    value and "Debug console shown" or "Debug console hidden",
+                    "INFO",
+                    "Debugger"
+                )
+            end
+        end
+    })
+    
+    return toggle
+end
+
+-- Hook into print function to auto-log
+local originalPrint = print
+function Library:HookPrint()
+    print = function(...)
+        local args = {...}
+        local message = ""
+        for i, arg in ipairs(args) do
+            message = message .. tostring(arg) .. (i < #args and "\t" or "")
+        end
+        
+        -- Log to debugger
+        self.Debugger:Info(message, "print")
+        
+        -- Call original print
+        originalPrint(...)
+    end
+end
+
+-- Hook into error handling
+function Library:HookErrors()
+    -- This would hook into various error sources in a real implementation
+    self.Debugger:Log("Error handler installed", "INFO", "Debugger")
+end
+
+-- ========================================
+-- ORIGINAL LIBRARY FUNCTIONS (with debugger integration)
+-- ========================================
+
 -- Create main window
 function Library:CreateWindow(config)
     config = config or {}
@@ -188,6 +614,9 @@ function Library:CreateWindow(config)
     Window.Theme = Themes[config.Theme] or Themes.Purple
     Window.Tabs = {}
     Window.CurrentTab = nil
+    
+    -- Log window creation
+    self.Debugger:Log(string.format("Creating window: '%s'", config.Title), "INFO", "Library")
     
     -- Create ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
@@ -269,6 +698,7 @@ function Library:CreateWindow(config)
     
     CloseButton.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
+        self.Debugger:Log("Window closed", "INFO", "Library")
     end)
     
     -- Tab Container (left side)
@@ -302,6 +732,11 @@ function Library:CreateWindow(config)
         if gameProcessed then return end
         if input.KeyCode == config.ToggleKey then
             MainFrame.Visible = not MainFrame.Visible
+            self.Debugger:Log(
+                string.format("UI toggled %s", MainFrame.Visible and "visible" or "hidden"),
+                "INFO",
+                "Library"
+            )
         end
     end)
     
@@ -312,6 +747,8 @@ function Library:CreateWindow(config)
     
     -- Create Tab function
     function Window:CreateTab(name)
+        self.Debugger:Log(string.format("Creating tab: '%s'", name), "INFO", "Library")
+        
         local Tab = {}
         Tab.Name = name
         Tab.Elements = {}
@@ -363,6 +800,8 @@ function Library:CreateWindow(config)
             TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             TabContent.Visible = true
             Window.CurrentTab = name
+            
+            self.Debugger:Log(string.format("Switched to tab: '%s'", name), "INFO", "Library")
         end)
         
         -- Auto-select first tab
@@ -378,13 +817,15 @@ function Library:CreateWindow(config)
         Window.Tabs[name] = Tab
         
         -- ========================================
-        -- ADD TOGGLE
+        -- ADD TOGGLE (with debugger integration)
         -- ========================================
         function Tab:AddToggle(config)
             config = config or {}
             config.Name = config.Name or "Toggle"
             config.Default = config.Default or false
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating toggle: '%s'", config.Name), "INFO", "Library")
             
             local ToggleFrame = Instance.new("Frame")
             ToggleFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -438,7 +879,22 @@ function Library:CreateWindow(config)
             ToggleButton.MouseButton1Click:Connect(function()
                 toggled = not toggled
                 UpdateToggle()
-                pcall(config.Callback, toggled)
+                
+                -- Log the toggle action
+                self.Debugger:Log(
+                    string.format("Toggle '%s': %s", config.Name, toggled and "ON" or "OFF"),
+                    "INFO",
+                    "UI"
+                )
+                
+                -- Call callback with error handling
+                local success, err = pcall(config.Callback, toggled)
+                if not success then
+                    self.Debugger:Error(
+                        string.format("Toggle callback error: %s", err),
+                        config.Name
+                    )
+                end
             end)
             
             -- Return control object
@@ -446,13 +902,22 @@ function Library:CreateWindow(config)
                 Set = function(_, value)
                     toggled = value
                     UpdateToggle()
-                    pcall(config.Callback, toggled)
+                    local success, err = pcall(config.Callback, toggled)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Toggle Set() error: %s", err),
+                            config.Name
+                        )
+                    end
+                end,
+                Get = function()
+                    return toggled
                 end
             }
         end
         
         -- ========================================
-        -- ADD SLIDER
+        -- ADD SLIDER (with debugger integration)
         -- ========================================
         function Tab:AddSlider(config)
             config = config or {}
@@ -463,6 +928,8 @@ function Library:CreateWindow(config)
             config.Increment = config.Increment or 1
             config.Suffix = config.Suffix or ""
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating slider: '%s'", config.Name), "INFO", "Library")
             
             local SliderFrame = Instance.new("Frame")
             SliderFrame.Size = UDim2.new(1, 0, 0, 60)
@@ -520,7 +987,23 @@ function Library:CreateWindow(config)
                 SliderFill.Size = UDim2.new(pos, 0, 1, 0)
                 ValueLabel.Text = tostring(value) .. config.Suffix
                 
-                pcall(config.Callback, value)
+                -- Log slider changes
+                if not dragging then
+                    self.Debugger:Log(
+                        string.format("Slider '%s': %s", config.Name, ValueLabel.Text),
+                        "INFO",
+                        "UI"
+                    )
+                end
+                
+                -- Call callback with error handling
+                local success, err = pcall(config.Callback, value)
+                if not success then
+                    self.Debugger:Error(
+                        string.format("Slider callback error: %s", err),
+                        config.Name
+                    )
+                end
             end
             
             SliderBar.InputBegan:Connect(function(input)
@@ -533,6 +1016,11 @@ function Library:CreateWindow(config)
             SliderBar.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = false
+                    self.Debugger:Log(
+                        string.format("Slider '%s' set to: %s", config.Name, ValueLabel.Text),
+                        "INFO",
+                        "UI"
+                    )
                 end
             end)
             
@@ -554,18 +1042,30 @@ function Library:CreateWindow(config)
                     local pos = (value - config.Min) / (config.Max - config.Min)
                     SliderFill.Size = UDim2.new(pos, 0, 1, 0)
                     ValueLabel.Text = tostring(value) .. config.Suffix
-                    pcall(config.Callback, value)
+                    
+                    local success, err = pcall(config.Callback, value)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Slider Set() error: %s", err),
+                            config.Name
+                        )
+                    end
+                end,
+                Get = function()
+                    return currentValue
                 end
             }
         end
         
         -- ========================================
-        -- ADD BUTTON
+        -- ADD BUTTON (with debugger integration)
         -- ========================================
         function Tab:AddButton(config)
             config = config or {}
             config.Name = config.Name or "Button"
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating button: '%s'", config.Name), "INFO", "Library")
             
             local ButtonFrame = Instance.new("TextButton")
             ButtonFrame.Size = UDim2.new(1, 0, 0, 40)
@@ -582,18 +1082,41 @@ function Library:CreateWindow(config)
                 TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Window.Theme.Dark}):Play()
                 wait(0.1)
                 TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Window.Theme.Main}):Play()
-                pcall(config.Callback)
+                
+                -- Log button click
+                self.Debugger:Log(
+                    string.format("Button clicked: '%s'", config.Name),
+                    "INFO",
+                    "UI"
+                )
+                
+                -- Call callback with error handling
+                local success, err = pcall(config.Callback)
+                if not success then
+                    self.Debugger:Error(
+                        string.format("Button callback error: %s", err),
+                        config.Name
+                    )
+                end
             end)
+            
+            return {
+                Fire = function()
+                    ButtonFrame.MouseButton1Click:Fire()
+                end
+            }
         end
         
         -- ========================================
-        -- ADD KEYBIND
+        -- ADD KEYBIND (with debugger integration)
         -- ========================================
         function Tab:AddKeybind(config)
             config = config or {}
             config.Name = config.Name or "Keybind"
             config.Default = config.Default or Enum.KeyCode.E
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating keybind: '%s'", config.Name), "INFO", "Library")
             
             local KeybindFrame = Instance.new("Frame")
             KeybindFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -632,6 +1155,11 @@ function Library:CreateWindow(config)
                 listening = true
                 KeyButton.Text = "..."
                 KeyButton.BackgroundColor3 = Window.Theme.Main
+                self.Debugger:Log(
+                    string.format("Listening for keybind: '%s'", config.Name),
+                    "INFO",
+                    "UI"
+                )
             end)
             
             UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -641,7 +1169,20 @@ function Library:CreateWindow(config)
                         KeyButton.Text = input.KeyCode.Name
                         KeyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
                         listening = false
-                        pcall(config.Callback, input.KeyCode)
+                        
+                        self.Debugger:Log(
+                            string.format("Keybind '%s' set to: %s", config.Name, input.KeyCode.Name),
+                            "SUCCESS",
+                            "UI"
+                        )
+                        
+                        local success, err = pcall(config.Callback, input.KeyCode)
+                        if not success then
+                            self.Debugger:Error(
+                                string.format("Keybind callback error: %s", err),
+                                config.Name
+                            )
+                        end
                     end
                 end
             end)
@@ -651,13 +1192,22 @@ function Library:CreateWindow(config)
                 Set = function(_, key)
                     currentKey = key
                     KeyButton.Text = key.Name
-                    pcall(config.Callback, key)
+                    local success, err = pcall(config.Callback, key)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Keybind Set() error: %s", err),
+                            config.Name
+                        )
+                    end
+                end,
+                Get = function()
+                    return currentKey
                 end
             }
         end
         
         -- ========================================
-        -- ADD DROPDOWN
+        -- ADD DROPDOWN (with debugger integration)
         -- ========================================
         function Tab:AddDropdown(config)
             config = config or {}
@@ -665,6 +1215,8 @@ function Library:CreateWindow(config)
             config.Options = config.Options or {"Option 1", "Option 2"}
             config.Default = config.Default or config.Options[1]
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating dropdown: '%s'", config.Name), "INFO", "Library")
             
             local DropdownFrame = Instance.new("Frame")
             DropdownFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -723,6 +1275,12 @@ function Library:CreateWindow(config)
                     TweenService:Create(DropdownFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 45 + newSize + 10)}):Play()
                     TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, newSize)}):Play()
                     DropButton.Text = currentOption .. " ▲"
+                    
+                    self.Debugger:Log(
+                        string.format("Dropdown '%s' expanded", config.Name),
+                        "INFO",
+                        "UI"
+                    )
                 else
                     TweenService:Create(DropdownFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 45)}):Play()
                     TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, 0)}):Play()
@@ -752,7 +1310,20 @@ function Library:CreateWindow(config)
                     TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, 0)}):Play()
                     wait(0.2)
                     OptionsList.Visible = false
-                    pcall(config.Callback, option)
+                    
+                    self.Debugger:Log(
+                        string.format("Dropdown '%s' selected: %s", config.Name, option),
+                        "INFO",
+                        "UI"
+                    )
+                    
+                    local success, err = pcall(config.Callback, option)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Dropdown callback error: %s", err),
+                            config.Name
+                        )
+                    end
                 end)
             end
             
@@ -760,13 +1331,22 @@ function Library:CreateWindow(config)
                 Set = function(_, option)
                     currentOption = option
                     DropButton.Text = option .. " ▼"
-                    pcall(config.Callback, option)
+                    local success, err = pcall(config.Callback, option)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Dropdown Set() error: %s", err),
+                            config.Name
+                        )
+                    end
+                end,
+                Get = function()
+                    return currentOption
                 end
             }
         end
         
         -- ========================================
-        -- ADD TEXTBOX
+        -- ADD TEXTBOX (with debugger integration)
         -- ========================================
         function Tab:AddTextbox(config)
             config = config or {}
@@ -775,6 +1355,8 @@ function Library:CreateWindow(config)
             config.PlaceholderText = config.PlaceholderText or "Enter text..."
             config.ClearOnFocus = config.ClearOnFocus or false
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating textbox: '%s'", config.Name), "INFO", "Library")
             
             local TextboxFrame = Instance.new("Frame")
             TextboxFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -817,25 +1399,42 @@ function Library:CreateWindow(config)
             
             Textbox.FocusLost:Connect(function(enterPressed)
                 if enterPressed then
-                    pcall(config.Callback, Textbox.Text)
+                    self.Debugger:Log(
+                        string.format("Textbox '%s' entered: %s", config.Name, Textbox.Text),
+                        "INFO",
+                        "UI"
+                    )
+                    
+                    local success, err = pcall(config.Callback, Textbox.Text)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Textbox callback error: %s", err),
+                            config.Name
+                        )
+                    end
                 end
             end)
             
             return {
                 Set = function(_, text)
                     Textbox.Text = text
+                end,
+                Get = function()
+                    return Textbox.Text
                 end
             }
         end
         
         -- ========================================
-        -- ADD COLOR PICKER
+        -- ADD COLOR PICKER (with debugger integration)
         -- ========================================
         function Tab:AddColorPicker(config)
             config = config or {}
             config.Name = config.Name or "Color Picker"
             config.Default = config.Default or Color3.fromRGB(255, 255, 255)
             config.Callback = config.Callback or function() end
+            
+            self.Debugger:Log(string.format("Creating color picker: '%s'", config.Name), "INFO", "Library")
             
             local ColorFrame = Instance.new("Frame")
             ColorFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -900,14 +1499,41 @@ function Library:CreateWindow(config)
                 index = index % #colors + 1
                 currentColor = colors[index]
                 ColorDisplay.BackgroundColor3 = currentColor
-                pcall(config.Callback, currentColor)
+                
+                self.Debugger:Log(
+                    string.format("Color picker '%s' changed to RGB(%d, %d, %d)", 
+                        config.Name, 
+                        math.floor(currentColor.R * 255),
+                        math.floor(currentColor.G * 255),
+                        math.floor(currentColor.B * 255)
+                    ),
+                    "INFO",
+                    "UI"
+                )
+                
+                local success, err = pcall(config.Callback, currentColor)
+                if not success then
+                    self.Debugger:Error(
+                        string.format("Color picker callback error: %s", err),
+                        config.Name
+                    )
+                end
             end)
             
             return {
                 Set = function(_, color)
                     currentColor = color
                     ColorDisplay.BackgroundColor3 = color
-                    pcall(config.Callback, color)
+                    local success, err = pcall(config.Callback, color)
+                    if not success then
+                        self.Debugger:Error(
+                            string.format("Color picker Set() error: %s", err),
+                            config.Name
+                        )
+                    end
+                end,
+                Get = function()
+                    return currentColor
                 end
             }
         end
@@ -960,7 +1586,21 @@ function Library:CreateWindow(config)
         return Tab
     end
     
+    -- Create debugger automatically
+    self:CreateDebugger()
+    
+    -- Log successful window creation
+    self.Debugger:Success(string.format("Window '%s' created successfully", config.Title), "Library")
+    
     return Window
 end
+
+-- Initialize debugger when library is loaded
+Library:CreateDebugger()
+
+-- Log library load
+Library.Debugger:Success("Custom UI Library loaded successfully", "Library")
+Library.Debugger:Log("Debugger system initialized", "INFO", "Debugger")
+Library.Debugger:Log("Library version: 2.0 (with Debugger)", "INFO", "System")
 
 return Library
