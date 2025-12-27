@@ -134,7 +134,7 @@ local function MakeDraggable(frame, dragFrame)
                 startPos.Y.Offset + delta.Y
             )
         end
-    end)
+    end
 end
 
 local function AddCorner(frame, radius)
@@ -591,14 +591,8 @@ function Library:HookPrint()
     end
 end
 
--- Hook into error handling
-function Library:HookErrors()
-    -- This would hook into various error sources in a real implementation
-    self.Debugger:Log("Error handler installed", "INFO", "Debugger")
-end
-
 -- ========================================
--- ORIGINAL LIBRARY FUNCTIONS (with debugger integration)
+-- ORIGINAL LIBRARY FUNCTIONS (FIXED VERSION)
 -- ========================================
 
 -- Create main window
@@ -744,14 +738,16 @@ function Library:CreateWindow(config)
     Window.MainFrame = MainFrame
     Window.TabContainer = TabContainer
     Window.ContentContainer = ContentContainer
+    Window.Library = self -- Store library reference for debugger access
     
     -- Create Tab function
     function Window:CreateTab(name)
-        self.Debugger:Log(string.format("Creating tab: '%s'", name), "INFO", "Library")
+        self.Library.Debugger:Log(string.format("Creating tab: '%s'", name), "INFO", "Library")
         
         local Tab = {}
         Tab.Name = name
         Tab.Elements = {}
+        Tab.Window = self -- Store window reference
         
         -- Tab Button
         local TabButton = Instance.new("TextButton")
@@ -774,7 +770,7 @@ function Library:CreateWindow(config)
         TabContent.BackgroundTransparency = 1
         TabContent.BorderSizePixel = 0
         TabContent.ScrollBarThickness = 4
-        TabContent.ScrollBarImageColor3 = Window.Theme.Light
+        TabContent.ScrollBarImageColor3 = self.Theme.Light
         TabContent.Visible = false
         TabContent.Parent = ContentContainer
         
@@ -790,31 +786,33 @@ function Library:CreateWindow(config)
         
         -- Switch to this tab when clicked
         TabButton.MouseButton1Click:Connect(function()
-            for _, tab in pairs(Window.Tabs) do
+            for _, tab in pairs(self.Tabs) do
                 tab.Button.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
                 tab.Button.TextColor3 = Color3.fromRGB(180, 180, 190)
                 tab.Content.Visible = false
             end
             
-            TabButton.BackgroundColor3 = Window.Theme.Main
+            TabButton.BackgroundColor3 = self.Theme.Main
             TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             TabContent.Visible = true
-            Window.CurrentTab = name
+            self.CurrentTab = name
             
-            self.Debugger:Log(string.format("Switched to tab: '%s'", name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Switched to tab: '%s'", name), "INFO", "Library")
         end)
         
         -- Auto-select first tab
-        if not Window.CurrentTab then
-            TabButton.BackgroundColor3 = Window.Theme.Main
+        if not self.CurrentTab then
+            TabButton.BackgroundColor3 = self.Theme.Main
             TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             TabContent.Visible = true
-            Window.CurrentTab = name
+            self.CurrentTab = name
         end
         
         Tab.Button = TabButton
         Tab.Content = TabContent
-        Window.Tabs[name] = Tab
+        Tab.Theme = self.Theme
+        Tab.Library = self.Library
+        self.Tabs[name] = Tab
         
         -- ========================================
         -- ADD TOGGLE (with debugger integration)
@@ -825,7 +823,7 @@ function Library:CreateWindow(config)
             config.Default = config.Default or false
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating toggle: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating toggle: '%s'", config.Name), "INFO", "Library")
             
             local ToggleFrame = Instance.new("Frame")
             ToggleFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -866,7 +864,7 @@ function Library:CreateWindow(config)
             
             local function UpdateToggle()
                 if toggled then
-                    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Window.Theme.Main}):Play()
+                    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = self.Theme.Main}):Play()
                     TweenService:Create(Indicator, TweenInfo.new(0.2), {Position = UDim2.new(1, -23, 0.5, -10.5)}):Play()
                 else
                     TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
@@ -881,7 +879,7 @@ function Library:CreateWindow(config)
                 UpdateToggle()
                 
                 -- Log the toggle action
-                self.Debugger:Log(
+                self.Library.Debugger:Log(
                     string.format("Toggle '%s': %s", config.Name, toggled and "ON" or "OFF"),
                     "INFO",
                     "UI"
@@ -890,7 +888,7 @@ function Library:CreateWindow(config)
                 -- Call callback with error handling
                 local success, err = pcall(config.Callback, toggled)
                 if not success then
-                    self.Debugger:Error(
+                    self.Library.Debugger:Error(
                         string.format("Toggle callback error: %s", err),
                         config.Name
                     )
@@ -904,7 +902,7 @@ function Library:CreateWindow(config)
                     UpdateToggle()
                     local success, err = pcall(config.Callback, toggled)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Toggle Set() error: %s", err),
                             config.Name
                         )
@@ -929,7 +927,7 @@ function Library:CreateWindow(config)
             config.Suffix = config.Suffix or ""
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating slider: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating slider: '%s'", config.Name), "INFO", "Library")
             
             local SliderFrame = Instance.new("Frame")
             SliderFrame.Size = UDim2.new(1, 0, 0, 60)
@@ -956,7 +954,7 @@ function Library:CreateWindow(config)
             ValueLabel.Text = tostring(config.Default) .. config.Suffix
             ValueLabel.Font = Enum.Font.GothamBold
             ValueLabel.TextSize = 13
-            ValueLabel.TextColor3 = Window.Theme.Light
+            ValueLabel.TextColor3 = self.Theme.Light
             ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
             ValueLabel.Parent = SliderFrame
             
@@ -970,7 +968,7 @@ function Library:CreateWindow(config)
             
             local SliderFill = Instance.new("Frame")
             SliderFill.Size = UDim2.new(0, 0, 1, 0)
-            SliderFill.BackgroundColor3 = Window.Theme.Main
+            SliderFill.BackgroundColor3 = self.Theme.Main
             SliderFill.BorderSizePixel = 0
             SliderFill.Parent = SliderBar
             AddCorner(SliderFill, 10)
@@ -989,7 +987,7 @@ function Library:CreateWindow(config)
                 
                 -- Log slider changes
                 if not dragging then
-                    self.Debugger:Log(
+                    self.Library.Debugger:Log(
                         string.format("Slider '%s': %s", config.Name, ValueLabel.Text),
                         "INFO",
                         "UI"
@@ -999,7 +997,7 @@ function Library:CreateWindow(config)
                 -- Call callback with error handling
                 local success, err = pcall(config.Callback, value)
                 if not success then
-                    self.Debugger:Error(
+                    self.Library.Debugger:Error(
                         string.format("Slider callback error: %s", err),
                         config.Name
                     )
@@ -1016,7 +1014,7 @@ function Library:CreateWindow(config)
             SliderBar.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = false
-                    self.Debugger:Log(
+                    self.Library.Debugger:Log(
                         string.format("Slider '%s' set to: %s", config.Name, ValueLabel.Text),
                         "INFO",
                         "UI"
@@ -1045,7 +1043,7 @@ function Library:CreateWindow(config)
                     
                     local success, err = pcall(config.Callback, value)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Slider Set() error: %s", err),
                             config.Name
                         )
@@ -1065,11 +1063,11 @@ function Library:CreateWindow(config)
             config.Name = config.Name or "Button"
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating button: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating button: '%s'", config.Name), "INFO", "Library")
             
             local ButtonFrame = Instance.new("TextButton")
             ButtonFrame.Size = UDim2.new(1, 0, 0, 40)
-            ButtonFrame.BackgroundColor3 = Window.Theme.Main
+            ButtonFrame.BackgroundColor3 = self.Theme.Main
             ButtonFrame.BorderSizePixel = 0
             ButtonFrame.Text = config.Name
             ButtonFrame.Font = Enum.Font.GothamBold
@@ -1079,12 +1077,12 @@ function Library:CreateWindow(config)
             AddCorner(ButtonFrame, 8)
             
             ButtonFrame.MouseButton1Click:Connect(function()
-                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Window.Theme.Dark}):Play()
+                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = self.Theme.Dark}):Play()
                 wait(0.1)
-                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Window.Theme.Main}):Play()
+                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = self.Theme.Main}):Play()
                 
                 -- Log button click
-                self.Debugger:Log(
+                self.Library.Debugger:Log(
                     string.format("Button clicked: '%s'", config.Name),
                     "INFO",
                     "UI"
@@ -1093,7 +1091,7 @@ function Library:CreateWindow(config)
                 -- Call callback with error handling
                 local success, err = pcall(config.Callback)
                 if not success then
-                    self.Debugger:Error(
+                    self.Library.Debugger:Error(
                         string.format("Button callback error: %s", err),
                         config.Name
                     )
@@ -1116,7 +1114,7 @@ function Library:CreateWindow(config)
             config.Default = config.Default or Enum.KeyCode.E
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating keybind: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating keybind: '%s'", config.Name), "INFO", "Library")
             
             local KeybindFrame = Instance.new("Frame")
             KeybindFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -1154,8 +1152,8 @@ function Library:CreateWindow(config)
             KeyButton.MouseButton1Click:Connect(function()
                 listening = true
                 KeyButton.Text = "..."
-                KeyButton.BackgroundColor3 = Window.Theme.Main
-                self.Debugger:Log(
+                KeyButton.BackgroundColor3 = self.Theme.Main
+                self.Library.Debugger:Log(
                     string.format("Listening for keybind: '%s'", config.Name),
                     "INFO",
                     "UI"
@@ -1170,7 +1168,7 @@ function Library:CreateWindow(config)
                         KeyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
                         listening = false
                         
-                        self.Debugger:Log(
+                        self.Library.Debugger:Log(
                             string.format("Keybind '%s' set to: %s", config.Name, input.KeyCode.Name),
                             "SUCCESS",
                             "UI"
@@ -1178,7 +1176,7 @@ function Library:CreateWindow(config)
                         
                         local success, err = pcall(config.Callback, input.KeyCode)
                         if not success then
-                            self.Debugger:Error(
+                            self.Library.Debugger:Error(
                                 string.format("Keybind callback error: %s", err),
                                 config.Name
                             )
@@ -1194,7 +1192,7 @@ function Library:CreateWindow(config)
                     KeyButton.Text = key.Name
                     local success, err = pcall(config.Callback, key)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Keybind Set() error: %s", err),
                             config.Name
                         )
@@ -1216,7 +1214,7 @@ function Library:CreateWindow(config)
             config.Default = config.Default or config.Options[1]
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating dropdown: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating dropdown: '%s'", config.Name), "INFO", "Library")
             
             local DropdownFrame = Instance.new("Frame")
             DropdownFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -1276,7 +1274,7 @@ function Library:CreateWindow(config)
                     TweenService:Create(OptionsList, TweenInfo.new(0.2), {Size = UDim2.new(0, 140, 0, newSize)}):Play()
                     DropButton.Text = currentOption .. " ▲"
                     
-                    self.Debugger:Log(
+                    self.Library.Debugger:Log(
                         string.format("Dropdown '%s' expanded", config.Name),
                         "INFO",
                         "UI"
@@ -1311,7 +1309,7 @@ function Library:CreateWindow(config)
                     wait(0.2)
                     OptionsList.Visible = false
                     
-                    self.Debugger:Log(
+                    self.Library.Debugger:Log(
                         string.format("Dropdown '%s' selected: %s", config.Name, option),
                         "INFO",
                         "UI"
@@ -1319,7 +1317,7 @@ function Library:CreateWindow(config)
                     
                     local success, err = pcall(config.Callback, option)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Dropdown callback error: %s", err),
                             config.Name
                         )
@@ -1333,7 +1331,7 @@ function Library:CreateWindow(config)
                     DropButton.Text = option .. " ▼"
                     local success, err = pcall(config.Callback, option)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Dropdown Set() error: %s", err),
                             config.Name
                         )
@@ -1356,7 +1354,7 @@ function Library:CreateWindow(config)
             config.ClearOnFocus = config.ClearOnFocus or false
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating textbox: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating textbox: '%s'", config.Name), "INFO", "Library")
             
             local TextboxFrame = Instance.new("Frame")
             TextboxFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -1399,7 +1397,7 @@ function Library:CreateWindow(config)
             
             Textbox.FocusLost:Connect(function(enterPressed)
                 if enterPressed then
-                    self.Debugger:Log(
+                    self.Library.Debugger:Log(
                         string.format("Textbox '%s' entered: %s", config.Name, Textbox.Text),
                         "INFO",
                         "UI"
@@ -1407,7 +1405,7 @@ function Library:CreateWindow(config)
                     
                     local success, err = pcall(config.Callback, Textbox.Text)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Textbox callback error: %s", err),
                             config.Name
                         )
@@ -1434,7 +1432,7 @@ function Library:CreateWindow(config)
             config.Default = config.Default or Color3.fromRGB(255, 255, 255)
             config.Callback = config.Callback or function() end
             
-            self.Debugger:Log(string.format("Creating color picker: '%s'", config.Name), "INFO", "Library")
+            self.Library.Debugger:Log(string.format("Creating color picker: '%s'", config.Name), "INFO", "Library")
             
             local ColorFrame = Instance.new("Frame")
             ColorFrame.Size = UDim2.new(1, 0, 0, 45)
@@ -1500,7 +1498,7 @@ function Library:CreateWindow(config)
                 currentColor = colors[index]
                 ColorDisplay.BackgroundColor3 = currentColor
                 
-                self.Debugger:Log(
+                self.Library.Debugger:Log(
                     string.format("Color picker '%s' changed to RGB(%d, %d, %d)", 
                         config.Name, 
                         math.floor(currentColor.R * 255),
@@ -1513,7 +1511,7 @@ function Library:CreateWindow(config)
                 
                 local success, err = pcall(config.Callback, currentColor)
                 if not success then
-                    self.Debugger:Error(
+                    self.Library.Debugger:Error(
                         string.format("Color picker callback error: %s", err),
                         config.Name
                     )
@@ -1526,7 +1524,7 @@ function Library:CreateWindow(config)
                     ColorDisplay.BackgroundColor3 = color
                     local success, err = pcall(config.Callback, color)
                     if not success then
-                        self.Debugger:Error(
+                        self.Library.Debugger:Error(
                             string.format("Color picker Set() error: %s", err),
                             config.Name
                         )
