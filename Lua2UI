@@ -1,6 +1,7 @@
+--lua
 -- ========================================
--- ADVANCED UI LIBRARY V2.1 (FIXED)
--- Fixed bugs, added settings tab, improved visuals
+-- ADVANCED UI LIBRARY V2.2 (FIXED)
+-- Fixed minimize button, fixed button theme switching
 -- ========================================
 
 local Library = {}
@@ -189,7 +190,7 @@ end
 function Library:CreateWindow(config)
     config = config or {}
     config.Title = config.Title or "UI Library"
-    config.Subtitle = config.Subtitle or "v2.1"
+    config.Subtitle = config.Subtitle or "v2.2"
     config.Theme = config.Theme or "Cyberpunk"
     config.Size = config.Size or UDim2.new(0, 600, 0, 400)
     config.ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
@@ -371,6 +372,12 @@ function Library:CreateWindow(config)
     
     MinButton.MouseLeave:Connect(function()
         Utilities:Tween(MinButton, {BackgroundTransparency = 0.8}, 0.2)
+    end)
+    
+    -- FIX APPLIED HERE: Added Window:Toggle()
+    MinButton.MouseButton1Click:Connect(function()
+        Window:Toggle()
+        Utilities:Tween(MinButton, {BackgroundTransparency = 0.5}, 0.2)
     end)
     
     -- Drag Functionality
@@ -1108,10 +1115,11 @@ function Library:CreateWindow(config)
             BFrame.Parent = TabContent
             Utilities:AddCorner(BFrame, 8)
             
-            Utilities:AddGradient(BFrame, {
-                {0, Window.Theme.Primary},
-                {1, Window.Theme.Secondary}
-            }, 45)
+            -- FIX APPLIED HERE: Gradient removed to allow theme color updates
+            -- Utilities:AddGradient(BFrame, {
+            --     {0, Window.Theme.Primary},
+            --     {1, Window.Theme.Secondary}
+            -- }, 45)
             
             table.insert(Tab.ThemeObjects, {Object = BFrame, Property = "BackgroundColor3", Color = "Primary"})
             table.insert(Window.ThemeObjects, {Object = BFrame, Property = "BackgroundColor3", Color = "Primary"})
@@ -1874,7 +1882,7 @@ function Library:CreateWindow(config)
     
     SettingsTab:AddParagraph({
         Title = "UI Library Info",
-        Content = "Advanced UI Library V2.1 - Fixed bugs, improved performance, added settings tab. Created with ❤️"
+        Content = "Advanced UI Library V2.2 - Fixed bugs, improved performance, added settings tab. Created with ❤️"
     })
     
     return Window
