@@ -1,7 +1,6 @@
---lua
 -- ========================================
--- ADVANCED UI LIBRARY V2.2 (FIXED)
--- Fixed minimize button, fixed button theme switching
+-- ADVANCED UI LIBRARY V2.3 (ANTI-OVERLAP)
+-- Fixed minimize, fixed theme switching, added reload prompt
 -- ========================================
 
 local Library = {}
@@ -190,13 +189,111 @@ end
 function Library:CreateWindow(config)
     config = config or {}
     config.Title = config.Title or "UI Library"
-    config.Subtitle = config.Subtitle or "v2.2"
+    config.Subtitle = config.Subtitle or "v2.3"
     config.Theme = config.Theme or "Cyberpunk"
     config.Size = config.Size or UDim2.new(0, 600, 0, 400)
     config.ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
     config.SaveConfig = config.SaveConfig or false
     config.ConfigName = config.ConfigName or "UIConfig"
     
+    -- ================= CONFLICT RESOLUTION =================
+    -- Check if library is already running
+    local ExistingLib = getgenv().AdvancedUILibrary_Instance
+    
+    if ExistingLib and ExistingLib.ScreenGui and ExistingLib.ScreenGui.Parent then
+        -- Create Prompt GUI
+        local PromptGui = Instance.new("ScreenGui")
+        PromptGui.Name = "UILibrary_Prompt"
+        PromptGui.ResetOnSpawn = false
+        PromptGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        local success, err = pcall(function() PromptGui.Parent = CoreGui end)
+        if not success then PromptGui.Parent = Player:WaitForChild("PlayerGui") end
+        
+        local PromptFrame = Instance.new("Frame")
+        PromptFrame.Size = UDim2.new(0, 400, 0, 180)
+        PromptFrame.Position = UDim2.new(0.5, -200, 0.5, -90)
+        PromptFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        PromptFrame.BorderSizePixel = 0
+        PromptFrame.ZIndex = 1000
+        PromptFrame.Parent = PromptGui
+        Utilities:AddCorner(PromptFrame, 12)
+        Utilities:AddStroke(PromptFrame, Color3.fromRGB(255, 255, 255), 1)
+        
+        local Title = Instance.new("TextLabel")
+        Title.Size = UDim2.new(1, 0, 0, 40)
+        Title.BackgroundTransparency = 1
+        Title.Text = "⚠️ GUI Already Running"
+        Title.TextColor3 = Color3.fromRGB(255, 200, 0)
+        Title.TextSize = 20
+        Title.Font = Enum.Font.GothamBold
+        Title.ZIndex = 1001
+        Title.Parent = PromptFrame
+        
+        local Desc = Instance.new("TextLabel")
+        Desc.Size = UDim2.new(1, -40, 0, 40)
+        Desc.Position = UDim2.new(0, 20, 0, 45)
+        Desc.BackgroundTransparency = 1
+        Desc.Text = "The library is already open. Do you want to reload it?"
+        Desc.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Desc.TextSize = 14
+        Desc.Font = Enum.Font.Gotham
+        Desc.TextWrapped = true
+        Desc.ZIndex = 1001
+        Desc.Parent = PromptFrame
+        
+        local YesBtn = Instance.new("TextButton")
+        YesBtn.Size = UDim2.new(0, 150, 0, 35)
+        YesBtn.Position = UDim2.new(0.5, -160, 1, -50)
+        YesBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+        YesBtn.BorderSizePixel = 0
+        YesBtn.Text = "RELOAD"
+        YesBtn.TextColor3 = Color3.new(1, 1, 1)
+        YesBtn.Font = Enum.Font.GothamBold
+        YesBtn.TextSize = 14
+        YesBtn.ZIndex = 1001
+        YesBtn.Parent = PromptFrame
+        Utilities:AddCorner(YesBtn, 8)
+        
+        local NoBtn = Instance.new("TextButton")
+        NoBtn.Size = UDim2.new(0, 150, 0, 35)
+        NoBtn.Position = UDim2.new(0.5, 10, 1, -50)
+        NoBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        NoBtn.BorderSizePixel = 0
+        NoBtn.Text = "CANCEL"
+        NoBtn.TextColor3 = Color3.new(1, 1, 1)
+        NoBtn.Font = Enum.Font.GothamBold
+        NoBtn.TextSize = 14
+        NoBtn.ZIndex = 1001
+        NoBtn.Parent = PromptFrame
+        Utilities:AddCorner(NoBtn, 8)
+        
+        local Choice = nil
+        
+        YesBtn.MouseButton1Click:Connect(function()
+            Choice = true
+        end)
+        NoBtn.MouseButton1Click:Connect(function()
+            Choice = false
+        end)
+        
+        -- Wait for user input
+        while Choice == nil do
+            task.wait()
+        end
+        
+        PromptGui:Destroy()
+        
+        if not Choice then
+            -- User chose to cancel, stop execution of new script
+            return nil 
+        else
+            -- User chose to reload, destroy old GUI
+            ExistingLib:Destroy()
+        end
+    end
+    
+    -- ======================================================
+
     local Window = {}
     Window.Theme = Themes[config.Theme] or Themes.Cyberpunk
     Window.CurrentTheme = config.Theme
@@ -374,7 +471,7 @@ function Library:CreateWindow(config)
         Utilities:Tween(MinButton, {BackgroundTransparency = 0.8}, 0.2)
     end)
     
-    -- FIX APPLIED HERE: Added Window:Toggle()
+    -- FIXED: Added Toggle
     MinButton.MouseButton1Click:Connect(function()
         Window:Toggle()
         Utilities:Tween(MinButton, {BackgroundTransparency = 0.5}, 0.2)
@@ -491,6 +588,9 @@ function Library:CreateWindow(config)
     end
     
     function Window:Destroy()
+        -- Clear global variable so new instances can load
+        getgenv().AdvancedUILibrary_Instance = nil
+        
         for _, conn in pairs(Window.Connections) do
             if conn.Connected then
                 conn:Disconnect()
@@ -1115,7 +1215,7 @@ function Library:CreateWindow(config)
             BFrame.Parent = TabContent
             Utilities:AddCorner(BFrame, 8)
             
-            -- FIX APPLIED HERE: Gradient removed to allow theme color updates
+            -- FIXED: Gradient removed for theme support
             -- Utilities:AddGradient(BFrame, {
             --     {0, Window.Theme.Primary},
             --     {1, Window.Theme.Secondary}
@@ -1882,8 +1982,11 @@ function Library:CreateWindow(config)
     
     SettingsTab:AddParagraph({
         Title = "UI Library Info",
-        Content = "Advanced UI Library V2.2 - Fixed bugs, improved performance, added settings tab. Created with ❤️"
+        Content = "Advanced UI Library V2.3 - Fixed bugs, improved performance, added settings tab, anti-overlap protection. Created with ❤️"
     })
+    
+    -- Save instance to getgenv for conflict detection
+    getgenv().AdvancedUILibrary_Instance = Window
     
     return Window
 end
