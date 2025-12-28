@@ -1247,7 +1247,6 @@ function Library:CreateWindow(config)
             IBox.TextSize = 12
             IBox.TextColor3 = Window.Theme.Text
             IBox.PlaceholderColor3 = Window.Theme.TextDim
-            IBox.ClearButtonEnabled = true
             IBox.ZIndex = 6
             IBox.Parent = IFrame
             Utilities:AddCorner(IBox, 6)
