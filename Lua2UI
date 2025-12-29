@@ -1,3 +1,4 @@
+--fix
 local Library = {}
 Library.__index = Library
 
@@ -13,7 +14,7 @@ local Lighting = game:GetService("Lighting")
 
 local Player = Players.LocalPlayer
 
--- Advanced Themes (Optimized Colors + Gradients)
+-- Visual Themes (V3 Style + Gradients)
 local Themes = {
     Cyberpunk = {
         Primary = Color3.fromRGB(139, 0, 255),
@@ -63,6 +64,54 @@ local Themes = {
             ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 180, 100))
         })
     },
+    Forest = {
+        Primary = Color3.fromRGB(50, 200, 100),
+        Secondary = Color3.fromRGB(100, 220, 150),
+        Dark = Color3.fromRGB(10, 15, 10),
+        Light = Color3.fromRGB(20, 30, 20),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(180, 200, 180),
+        Accent = Color3.fromRGB(150, 255, 100),
+        Success = Color3.fromRGB(100, 255, 150),
+        Warning = Color3.fromRGB(255, 200, 100),
+        Error = Color3.fromRGB(255, 100, 100),
+        Gradient = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 200, 100)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 220, 150))
+        })
+    },
+    Galaxy = {
+        Primary = Color3.fromRGB(150, 50, 255),
+        Secondary = Color3.fromRGB(100, 100, 255),
+        Dark = Color3.fromRGB(5, 5, 15),
+        Light = Color3.fromRGB(15, 15, 30),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(200, 180, 220),
+        Accent = Color3.fromRGB(200, 150, 255),
+        Success = Color3.fromRGB(150, 255, 200),
+        Warning = Color3.fromRGB(255, 200, 150),
+        Error = Color3.fromRGB(255, 100, 150),
+        Gradient = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 50, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 255))
+        })
+    },
+    Neon = {
+        Primary = Color3.fromRGB(255, 0, 255),
+        Secondary = Color3.fromRGB(0, 255, 255),
+        Dark = Color3.fromRGB(0, 0, 0),
+        Light = Color3.fromRGB(10, 10, 10),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(200, 200, 200),
+        Accent = Color3.fromRGB(255, 255, 0),
+        Success = Color3.fromRGB(0, 255, 0),
+        Warning = Color3.fromRGB(255, 200, 0),
+        Error = Color3.fromRGB(255, 0, 0),
+        Gradient = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 255))
+        })
+    },
     Minimal = {
         Primary = Color3.fromRGB(100, 100, 120),
         Secondary = Color3.fromRGB(120, 120, 140),
@@ -86,17 +135,14 @@ local Utilities = {}
 
 function Utilities:Tween(obj, props, duration, style, direction)
     if not obj or not obj.Parent then return end
-    
-    -- Cancel existing tweens on the same object to prevent conflict
     local existingTween = TweenService:GetTweenPlayingOnObject(obj)
     if existingTween then existingTween:Cancel() end
 
-    duration = duration or 0.4
+    duration = duration or 0.3
     style = style or Enum.EasingStyle.Quart
     direction = direction or Enum.EasingDirection.Out
     
-    local tweenInfo = TweenInfo.new(duration, style, direction)
-    local tween = TweenService:Create(obj, tweenInfo, props)
+    local tween = TweenService:Create(obj, TweenInfo.new(duration, style, direction), props)
     tween:Play()
     return tween
 end
@@ -120,7 +166,6 @@ end
 function Utilities:AddGradient(frame, colors, rotation)
     local gradient = Instance.new("UIGradient")
     gradient.Rotation = rotation or 45
-    
     if typeof(colors) == "ColorSequence" then
         gradient.Color = colors
     else
@@ -130,12 +175,11 @@ function Utilities:AddGradient(frame, colors, rotation)
         end
         gradient.Color = ColorSequence.new(colorSequence)
     end
-    
     gradient.Parent = frame
     return gradient
 end
 
-function Utilities:AddPadding(frame, px, py, pt, pb)
+function Utilities:AddPadding(frame, px, py, pt, pb, pl, pr)
     local uiPadding = Instance.new("UIPadding")
     uiPadding.PaddingTop = UDim.new(0, pt or px or 5)
     uiPadding.PaddingBottom = UDim.new(0, pb or py or px or 5)
@@ -143,10 +187,6 @@ function Utilities:AddPadding(frame, px, py, pt, pb)
     uiPadding.PaddingRight = UDim.new(0, pr or py or px or 5)
     uiPadding.Parent = frame
     return uiPadding
-end
-
-function Utilities:CreateRipple(button)
-    -- Optional: Nice click effect (simple implementation)
 end
 
 -- Config Manager
@@ -180,7 +220,7 @@ end
 function Library:CreateWindow(config)
     config = config or {}
     config.Title = config.Title or "UI Library"
-    config.Subtitle = config.Subtitle or "v3.0 Premium"
+    config.Subtitle = config.Subtitle or "v2.1 Ultimate"
     config.Theme = config.Theme or "Cyberpunk"
     config.Size = config.Size or UDim2.new(0, 600, 0, 450)
     config.ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
@@ -189,17 +229,15 @@ function Library:CreateWindow(config)
     config.ShowWatermark = config.ShowWatermark ~= nil and config.ShowWatermark or true
     config.UseBlur = config.UseBlur ~= nil and config.UseBlur or true
     
-    -- ================= CONFLICT RESOLUTION =================
     local ExistingLib = getgenv().AdvancedUILibrary_Instance
     
     if ExistingLib and ExistingLib.ScreenGui and ExistingLib.ScreenGui.Parent then
-        -- Quick check to see if it's actually visible/active
         local PromptGui = Instance.new("ScreenGui")
         PromptGui.Name = "UILibrary_Prompt"
         PromptGui.ResetOnSpawn = false
         PromptGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         PromptGui.DisplayOrder = 999
-        local success, err = pcall(function() PromptGui.Parent = CoreGui end)
+        local success = pcall(function() PromptGui.Parent = CoreGui end)
         if not success then PromptGui.Parent = Player:WaitForChild("PlayerGui") end
         
         local PromptFrame = Instance.new("Frame")
@@ -230,7 +268,7 @@ function Library:CreateWindow(config)
         Desc.Size = UDim2.new(1, -60, 0, 50)
         Desc.Position = UDim2(0, 30, 0, 60)
         Desc.BackgroundTransparency = 1
-        Desc.Text = "An instance is already running. Reload to prevent lag?"
+        Desc.Text = "Reload to prevent lag?"
         Desc.TextColor3 = Color3.fromRGB(200, 200, 200)
         Desc.TextSize = 15
         Desc.Font = Enum.Font.Gotham
@@ -264,35 +302,22 @@ function Library:CreateWindow(config)
         NoBtn.Parent = PromptFrame
         Utilities:AddCorner(NoBtn, 8)
         
-        -- Hover Effects
         YesBtn.MouseEnter:Connect(function() Utilities:Tween(YesBtn, {BackgroundColor3 = Color3.fromRGB(80, 230, 120)}, 0.2) end)
         YesBtn.MouseLeave:Connect(function() Utilities:Tween(YesBtn, {BackgroundColor3 = Color3.fromRGB(50, 200, 100)}, 0.2) end)
         NoBtn.MouseEnter:Connect(function() Utilities:Tween(NoBtn, {BackgroundColor3 = Color3.fromRGB(230, 80, 80)}, 0.2) end)
         NoBtn.MouseLeave:Connect(function() Utilities:Tween(NoBtn, {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}, 0.2) end)
         
         local Choice = nil
-        
-        YesBtn.MouseButton1Click:Connect(function()
-            Choice = true
-        end)
-        NoBtn.MouseButton1Click:Connect(function()
-            Choice = false
-        end)
+        YesBtn.MouseButton1Click:Connect(function() Choice = true end)
+        NoBtn.MouseButton1Click:Connect(function() Choice = false end)
         
         while Choice == nil do task.wait() end
-        
         PromptGui:Destroy()
         Blur:Destroy()
         
-        if not Choice then
-            return nil 
-        else
-            ExistingLib:Destroy()
-        end
+        if not Choice then return nil else ExistingLib:Destroy() end
     end
     
-    -- ======================================================
-
     local Window = {}
     Window.Theme = Themes[config.Theme] or Themes.Cyberpunk
     Window.CurrentTheme = config.Theme
@@ -304,36 +329,25 @@ function Library:CreateWindow(config)
     Window.Visible = true
     Window.SavedData = {}
     
-    if config.SaveConfig then
-        Window.SavedData = ConfigManager:Load(config.ConfigName) or {}
-    end
+    if config.SaveConfig then Window.SavedData = ConfigManager:Load(config.ConfigName) or {} end
     
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "AdvancedUILibrary_Premium"
+    ScreenGui.Name = "AdvancedUILibrary_Ultimate"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    ScreenGui.DisplayOrder = 100 -- Ensure it stays on top
+    ScreenGui.DisplayOrder = 100
     
-    local success = pcall(function()
-        ScreenGui.Parent = CoreGui
-    end)
-    if not success then
-        ScreenGui.Parent = Player:WaitForChild("PlayerGui")
-    end
-    
+    local success = pcall(function() ScreenGui.Parent = CoreGui end)
+    if not success then ScreenGui.Parent = Player:WaitForChild("PlayerGui") end
     Window.ScreenGui = ScreenGui
     
-    -- Background Blur (Optional & Optimized)
+    -- Background Blur
     local BackgroundBlur = Instance.new("BlurEffect")
     BackgroundBlur.Name = "UIBlur"
     BackgroundBlur.Size = 0
     BackgroundBlur.Parent = Lighting
     
-    if config.UseBlur then
-        task.spawn(function()
-            Utilities:Tween(BackgroundBlur, {Size = 24}, 0.5, Enum.EasingStyle.Quart)
-        end)
-    end
+    if config.UseBlur then task.spawn(function() Utilities:Tween(BackgroundBlur, {Size = 24}, 0.5, Enum.EasingStyle.Quart) end) end
     
     -- Main Frame
     local MainFrame = Instance.new("Frame")
@@ -347,7 +361,6 @@ function Library:CreateWindow(config)
     MainFrame.Parent = ScreenGui
     Utilities:AddCorner(MainFrame, 16)
     
-    -- Add Gradient to Main Frame for subtle depth
     local MainGradient = Utilities:AddGradient(MainFrame, {
         {0, Window.Theme.Dark},
         {1, Window.Theme.Light}
@@ -355,10 +368,7 @@ function Library:CreateWindow(config)
     
     local MainStroke = Utilities:AddStroke(MainFrame, Window.Theme.Primary, 1.5)
     
-    table.insert(Window.ThemeObjects, {Object = MainFrame, Property = "BackgroundColor3", Color = "Dark"})
-    table.insert(Window.ThemeObjects, {Object = MainStroke, Property = "Color", Color = "Primary"})
-    
-    -- Title Bar with Gradient
+    -- Title Bar
     local TitleBar = Instance.new("Frame")
     TitleBar.Name = "TitleBar"
     TitleBar.Size = UDim2.new(1, 0, 0, 60)
@@ -369,9 +379,7 @@ function Library:CreateWindow(config)
     Utilities:AddCorner(TitleBar, 16)
     
     local TitleGradient = Utilities:AddGradient(TitleBar, Window.Theme.Gradient, 45)
-    table.insert(Window.ThemeObjects, {Object = TitleGradient, Property = "Color", Type = "Gradient", Color = "Gradient"})
     
-    -- Title Bar Fix (Rounded bottom corners fix)
     local TitleBarFix = Instance.new("Frame")
     TitleBarFix.Size = UDim2.new(1, 0, 0, 20)
     TitleBarFix.Position = UDim2.new(0, 0, 1, -20)
@@ -379,9 +387,6 @@ function Library:CreateWindow(config)
     TitleBarFix.BorderSizePixel = 0
     TitleBarFix.ZIndex = 11
     TitleBarFix.Parent = TitleBar
-    
-    table.insert(Window.ThemeObjects, {Object = TitleBar, Property = "BackgroundColor3", Color = "Light"})
-    table.insert(Window.ThemeObjects, {Object = TitleBarFix, Property = "BackgroundColor3", Color = "Light"})
     
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
@@ -410,7 +415,7 @@ function Library:CreateWindow(config)
     Subtitle.ZIndex = 12
     Subtitle.Parent = TitleBar
     
-    -- Window Controls (Close/Min)
+    -- Controls
     local ControlFrame = Instance.new("Frame")
     ControlFrame.Size = UDim2.new(0, 80, 0, 30)
     ControlFrame.Position = UDim2.new(1, -90, 0, 15)
@@ -450,7 +455,6 @@ function Library:CreateWindow(config)
     CloseButton.Parent = ControlFrame
     Utilities:AddCorner(CloseButton, 50)
     
-    -- Button Hover Effects
     MinButton.MouseEnter:Connect(function() Utilities:Tween(MinButton, {BackgroundTransparency = 0.7, Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(0, -1, 0, -1)}, 0.2) end)
     MinButton.MouseLeave:Connect(function() Utilities:Tween(MinButton, {BackgroundTransparency = 0.9, Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(0, 0, 0, 0)}, 0.2) end)
     CloseButton.MouseEnter:Connect(function() Utilities:Tween(CloseButton, {BackgroundTransparency = 0, Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(1, -31, 0, -1)}, 0.2) end)
@@ -459,7 +463,7 @@ function Library:CreateWindow(config)
     MinButton.MouseButton1Click:Connect(function() Window:Toggle() end)
     CloseButton.MouseButton1Click:Connect(function() Window:Destroy() end)
     
-    -- Drag Functionality with Bounds Checking
+    -- Dragging
     local dragging = false
     local dragInput
     local dragStart
@@ -471,40 +475,32 @@ function Library:CreateWindow(config)
             dragStart = input.Position
             startPos = MainFrame.Position
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
     
     TitleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
+        if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
     end)
     
     local dragConn = UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            
             local viewportSize = workspace.CurrentCamera.ViewportSize
             local windowSizeX = MainFrame.AbsoluteSize.X
             local windowSizeY = MainFrame.AbsoluteSize.Y
             
-            local xOffset = newPos.X.Offset
-            local yOffset = newPos.Y.Offset
-            
-            xOffset = math.clamp(xOffset, 0, viewportSize.X - windowSizeX)
-            yOffset = math.clamp(yOffset, 0, viewportSize.Y - windowSizeY)
+            local xOffset = math.clamp(newPos.X.Offset, 0, viewportSize.X - windowSizeX)
+            local yOffset = math.clamp(newPos.Y.Offset, 0, viewportSize.Y - windowSizeY)
             
             MainFrame.Position = UDim2.new(0, xOffset, 0, yOffset)
         end
     end)
     table.insert(Window.Connections, dragConn)
     
-    -- Layouts
+    -- Tab Layout
     local TabHolder = Instance.new("Frame")
     TabHolder.Name = "TabHolder"
     TabHolder.Size = UDim2.new(0, 160, 1, -70)
@@ -562,7 +558,7 @@ function Library:CreateWindow(config)
         Watermark.Size = UDim2.new(0, 200, 0, 30)
         Watermark.Position = UDim2.new(1, -210, 0, 10)
         Watermark.BackgroundTransparency = 1
-        Watermark.Text = config.WatermarkText
+        Watermark.Text = config.WatermarkText or "UI Library"
         Watermark.TextColor3 = Window.Theme.Text
         Watermark.TextSize = 14
         Watermark.Font = Enum.Font.Gotham
@@ -571,6 +567,14 @@ function Library:CreateWindow(config)
         Watermark.ZIndex = 1
         Watermark.Parent = ScreenGui
     end
+    
+    -- Theme Management
+    table.insert(Window.ThemeObjects, {Object = MainFrame, Property = "BackgroundColor3", Color = "Dark"})
+    table.insert(Window.ThemeObjects, {Object = MainGradient, Property = "Color", Type = "Gradient", Color = "Gradient"})
+    table.insert(Window.ThemeObjects, {Object = MainStroke, Property = "Color", Color = "Primary"})
+    table.insert(Window.ThemeObjects, {Object = TitleBar, Property = "BackgroundColor3", Color = "Light"})
+    table.insert(Window.ThemeObjects, {Object = TitleBarFix, Property = "BackgroundColor3", Color = "Light"})
+    table.insert(Window.ThemeObjects, {Object = TitleGradient, Property = "Color", Type = "Gradient", Color = "Gradient"})
     
     -- Window Methods
     function Window:Toggle()
@@ -596,35 +600,28 @@ function Library:CreateWindow(config)
     function Window:Destroy()
         getgenv().AdvancedUILibrary_Instance = nil
         if BackgroundBlur then BackgroundBlur:Destroy() end
-        for _, conn in pairs(Window.Connections) do
-            if conn.Connected then conn:Disconnect() end
-        end
+        for _, conn in pairs(Window.Connections) do if conn.Connected then conn:Disconnect() end end
         ScreenGui:Destroy()
     end
     
     function Window:UpdateTheme(themeName)
         if not Themes[themeName] then return end
-        
         Window.Theme = Themes[themeName]
         Window.CurrentTheme = themeName
         
         for _, obj in pairs(Window.ThemeObjects) do
             if obj.Object and obj.Object.Parent then
                 if obj.Type == "Gradient" then
-                     Utilities:Tween(obj.Object, {Color = Window.Theme[obj.Color]}, 0.3)
+                    Utilities:Tween(obj.Object, {Color = Window.Theme[obj.Color]}, 0.3)
                 else
                     local newColor = Window.Theme[obj.Color]
-                    if newColor then
-                        Utilities:Tween(obj.Object, {[obj.Property] = newColor}, 0.3)
-                    end
+                    if newColor then Utilities:Tween(obj.Object, {[obj.Property] = newColor}, 0.3) end
                 end
             end
         end
     end
     
-    function Window:UpdateToggleKey(key)
-        Window.Config.ToggleKey = key
-    end
+    function Window:UpdateToggleKey(key) Window.Config.ToggleKey = key end
     
     function Window:Notify(cfg)
         cfg = cfg or {}
@@ -634,16 +631,9 @@ function Library:CreateWindow(config)
         cfg.Type = cfg.Type or "Info"
         
         local children = NotifContainer:GetChildren()
-        for i = #children, 1, -1 do
-            if i > 3 then children[i]:Destroy() end
-        end
+        for i = #children, 1, -1 do if i > 3 then children[i]:Destroy() end end
         
-        local typeColors = {
-            Info = Window.Theme.Primary,
-            Success = Window.Theme.Success,
-            Warning = Window.Theme.Warning,
-            Error = Window.Theme.Error
-        }
+        local typeColors = { Info = Window.Theme.Primary, Success = Window.Theme.Success, Warning = Window.Theme.Warning, Error = Window.Theme.Error }
         local accentColor = typeColors[cfg.Type] or Window.Theme.Primary
         
         local NotifFrame = Instance.new("Frame")
@@ -655,10 +645,7 @@ function Library:CreateWindow(config)
         Utilities:AddCorner(NotifFrame, 12)
         Utilities:AddStroke(NotifFrame, accentColor, 1)
         
-        local NotifGradient = Utilities:AddGradient(NotifFrame, {
-            {0, Window.Theme.Light},
-            {1, Window.Theme.Dark}
-        })
+        local NotifGradient = Utilities:AddGradient(NotifFrame, {{0, Window.Theme.Light}, {1, Window.Theme.Dark}})
         
         local NotifAccent = Instance.new("Frame")
         NotifAccent.Size = UDim2.new(0, 4, 1, 0)
@@ -694,8 +681,7 @@ function Library:CreateWindow(config)
         NotifContent.ZIndex = 1002
         NotifContent.Parent = NotifFrame
         
-        -- Resize text
-        local textBounds = TextService:GetTextSize(cfg.Content, 13, Enum.Font.Gotham, Vector2.new(NotifContent.AbsoluteSize.X > 0 and NotifContent.AbsoluteSize.X or 300, math.huge))
+        local textBounds = TextService:GetTextSize(cfg.Content, 13, Enum.Font.Gotham, Vector2.new(300, math.huge))
         NotifContent.Size = UDim2.new(1, -30, 0, textBounds.Y)
         local totalHeight = textBounds.Y + 50
         
@@ -709,9 +695,7 @@ function Library:CreateWindow(config)
     end
     
     local toggleConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == Window.Config.ToggleKey then
-            Window:Toggle()
-        end
+        if not gameProcessed and input.KeyCode == Window.Config.ToggleKey then Window:Toggle() end
     end)
     table.insert(Window.Connections, toggleConn)
     
@@ -737,7 +721,6 @@ function Library:CreateWindow(config)
         TabButton.Parent = TabContainer
         Utilities:AddCorner(TabButton, 8)
         
-        -- Indicator for active tab
         local Indicator = Instance.new("Frame")
         Indicator.Size = UDim2.new(0, 4, 0, 20)
         Indicator.Position = UDim2.new(0, 6, 0.5, -10)
@@ -794,7 +777,6 @@ function Library:CreateWindow(config)
             TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y + 20)
         end)
         
-        -- Theme Objects for Tab
         table.insert(Window.ThemeObjects, {Object = TabButton, Property = "BackgroundColor3", Color = "Light"})
         table.insert(Window.ThemeObjects, {Object = TabLabel, Property = "TextColor3", Color = "TextDim"})
         table.insert(Window.ThemeObjects, {Object = Indicator, Property = "BackgroundColor3", Color = "Primary"})
@@ -802,14 +784,11 @@ function Library:CreateWindow(config)
         
         local function SelectTab()
             for _, tab in pairs(Window.Tabs) do
-                -- Reset styling
                 Utilities:Tween(tab.Button, {BackgroundColor3 = Window.Theme.Light, BackgroundTransparency = 0.5}, 0.3)
                 tab.Label.TextColor3 = Window.Theme.TextDim
                 tab.Content.Visible = false
                 if tab.Indicator then tab.Indicator.Visible = false end
             end
-            
-            -- Activate current
             Utilities:Tween(TabButton, {BackgroundColor3 = Window.Theme.Primary, BackgroundTransparency = 0.2}, 0.3)
             TabLabel.TextColor3 = Window.Theme.Text
             Indicator.Visible = true
@@ -818,10 +797,7 @@ function Library:CreateWindow(config)
         end
         
         TabButton.MouseButton1Click:Connect(SelectTab)
-        
-        if not Window.CurrentTab then
-            SelectTab()
-        end
+        if not Window.CurrentTab then SelectTab() end
         
         Tab.Button = TabButton
         Tab.Label = TabLabel
@@ -829,7 +805,7 @@ function Library:CreateWindow(config)
         Tab.Indicator = Indicator
         Window.Tabs[tabConfig.Name] = Tab
         
-        -- ELEMENTS
+        -- ELEMENTS START HERE
         function Tab:AddSection(name)
             local SFrame = Instance.new("Frame")
             SFrame.Size = UDim2.new(1, 0, 0, 30)
@@ -851,10 +827,38 @@ function Library:CreateWindow(config)
             table.insert(Window.ThemeObjects, {Object = SLabel, Property = "TextColor3", Color = "Primary"})
         end
         
+        function Tab:AddLabel(text)
+            local LFrame = Instance.new("Frame")
+            LFrame.Size = UDim2.new(1, 0, 0, 30)
+            LFrame.BackgroundTransparency = 1
+            LFrame.ZIndex = 13
+            LFrame.Parent = TabContent
+            
+            local LLabel = Instance.new("TextLabel")
+            LLabel.Size = UDim2.new(1, -10, 1, 0)
+            LLabel.BackgroundTransparency = 1
+            LLabel.Text = text
+            LLabel.Font = Enum.Font.Gotham
+            LLabel.TextSize = 13
+            LLabel.TextColor3 = Window.Theme.TextDim
+            LLabel.TextXAlignment = Enum.TextXAlignment.Left
+            LLabel.TextWrapped = true
+            LLabel.ZIndex = 14
+            LLabel.Parent = LFrame
+            
+            table.insert(Window.ThemeObjects, {Object = LLabel, Property = "TextColor3", Color = "TextDim"})
+            
+            return {
+                Set = function(_, txt)
+                    LLabel.Text = txt
+                end
+            }
+        end
+        
         function Tab:AddParagraph(cfg)
             cfg = cfg or {}
             cfg.Title = cfg.Title or "Paragraph"
-            cfg.Content = cfg.Content or "Content here..."
+            cfg.Content = cfg.Content or "Content..."
             
             local PFrame = Instance.new("Frame")
             PFrame.BackgroundColor3 = Window.Theme.Light
@@ -877,7 +881,7 @@ function Library:CreateWindow(config)
             PTitle.Parent = PFrame
             
             local PContent = Instance.new("TextLabel")
-            PContent.Size = UDim2.new(1, -20, 0, 0) -- Auto size
+            PContent.Size = UDim2.new(1, -20, 0, 0)
             PContent.Position = UDim2.new(0, 10, 0, 32)
             PContent.BackgroundTransparency = 1
             PContent.Text = cfg.Content
@@ -908,14 +912,36 @@ function Library:CreateWindow(config)
                 end
             }
         end
-        
+
+        function Tab:AddDivider()
+            local DivFrame = Instance.new("Frame")
+            DivFrame.Size = UDim2.new(1, 0, 0, 10)
+            DivFrame.BackgroundTransparency = 1
+            DivFrame.ZIndex = 13
+            DivFrame.Parent = TabContent
+            
+            local Line = Instance.new("Frame")
+            Line.Size = UDim2.new(1, -20, 0, 2)
+            Line.Position = UDim2.new(0, 10, 0.5, -1)
+            Line.BackgroundColor3 = Window.Theme.Primary
+            Line.BackgroundTransparency = 0.7
+            Line.BorderSizePixel = 0
+            Line.ZIndex = 14
+            Line.Parent = DivFrame
+            Utilities:AddCorner(Line, 10)
+            
+            table.insert(Window.ThemeObjects, {Object = Line, Property = "BackgroundColor3", Color = "Primary"})
+        end
+
         function Tab:AddButton(cfg)
             cfg = cfg or {}
             cfg.Name = cfg.Name or "Button"
+            cfg.Description = cfg.Description
             cfg.Callback = cfg.Callback or function() end
             
             local BFrame = Instance.new("TextButton")
-            BFrame.Size = UDim2.new(1, 0, 0, 35)
+            local height = cfg.Description and 60 or 35
+            BFrame.Size = UDim2.new(1, 0, 0, height)
             BFrame.BackgroundColor3 = Window.Theme.Primary
             BFrame.BorderSizePixel = 0
             BFrame.Text = ""
@@ -927,7 +953,8 @@ function Library:CreateWindow(config)
             local BGradient = Utilities:AddGradient(BFrame, Window.Theme.Gradient)
             
             local BLabel = Instance.new("TextLabel")
-            BLabel.Size = UDim2.new(1, 0, 1, 0)
+            BLabel.Size = UDim2.new(1, -20, 0, 20)
+            BLabel.Position = UDim2.new(0, 10, 0, cfg.Description and 8 or 8)
             BLabel.BackgroundTransparency = 1
             BLabel.Text = cfg.Name
             BLabel.Font = Enum.Font.GothamBold
@@ -936,28 +963,47 @@ function Library:CreateWindow(config)
             BLabel.ZIndex = 14
             BLabel.Parent = BFrame
             
+            if cfg.Description then
+                local BDesc = Instance.new("TextLabel")
+                BDesc.Size = UDim2.new(1, -20, 0, 15)
+                BDesc.Position = UDim2.new(0, 10, 0, 30)
+                BDesc.BackgroundTransparency = 1
+                BDesc.Text = cfg.Description
+                BDesc.Font = Enum.Font.Gotham
+                BDesc.TextSize = 11
+                BDesc.TextColor3 = Color3.fromRGB(255, 255, 255)
+                BDesc.TextTransparency = 0.3
+                BDesc.ZIndex = 14
+                BDesc.Parent = BFrame
+            end
+            
             table.insert(Window.ThemeObjects, {Object = BGradient, Property = "Color", Type = "Gradient", Color = "Gradient"})
             
             BFrame.MouseButton1Click:Connect(function()
-                Utilities:Tween(BFrame, {Size = UDim2.new(1, -5, 0, 30)}, 0.1, Enum.EasingStyle.Quart)
+                Utilities:Tween(BFrame, {Size = UDim2.new(1, -5, 0, height - 5)}, 0.1, Enum.EasingStyle.Quart)
                 task.wait(0.1)
-                Utilities:Tween(BFrame, {Size = UDim2.new(1, 0, 0, 35)}, 0.1, Enum.EasingStyle.Quart)
+                Utilities:Tween(BFrame, {Size = UDim2.new(1, 0, 0, height)}, 0.1, Enum.EasingStyle.Quart)
                 task.spawn(cfg.Callback)
             end)
             
             return {
-                Set = function(_, name) BLabel.Text = name end
+                Set = function(_, name)
+                    BLabel.Text = name
+                end
             }
         end
         
         function Tab:AddToggle(cfg)
             cfg = cfg or {}
             cfg.Name = cfg.Name or "Toggle"
+            cfg.Description = cfg.Description
             cfg.Default = cfg.Default or false
             cfg.Callback = cfg.Callback or function() end
             
+            local height = cfg.Description and 60 or 40
+            
             local TFrame = Instance.new("Frame")
-            TFrame.Size = UDim2.new(1, 0, 0, 40)
+            TFrame.Size = UDim2.new(1, 0, 0, height)
             TFrame.BackgroundColor3 = Window.Theme.Light
             TFrame.BackgroundTransparency = 0.5
             TFrame.BorderSizePixel = 0
@@ -966,8 +1012,8 @@ function Library:CreateWindow(config)
             Utilities:AddCorner(TFrame, 8)
             
             local TLabel = Instance.new("TextLabel")
-            TLabel.Size = UDim2.new(1, -60, 1, 0)
-            TLabel.Position = UDim2.new(0, 15, 0, 0)
+            TLabel.Size = UDim2.new(1, -60, 0, 20)
+            TLabel.Position = UDim2.new(0, 15, 0, cfg.Description and 8 or 10)
             TLabel.BackgroundTransparency = 1
             TLabel.Text = cfg.Name
             TLabel.Font = Enum.Font.GothamSemibold
@@ -977,9 +1023,26 @@ function Library:CreateWindow(config)
             TLabel.ZIndex = 14
             TLabel.Parent = TFrame
             
+            if cfg.Description then
+                local TDesc = Instance.new("TextLabel")
+                TDesc.Size = UDim2.new(1, -60, 0, 30)
+                TDesc.Position = UDim2.new(0, 15, 0, 28)
+                TDesc.BackgroundTransparency = 1
+                TDesc.Text = cfg.Description
+                TDesc.Font = Enum.Font.Gotham
+                TDesc.TextSize = 11
+                TDesc.TextColor3 = Window.Theme.TextDim
+                TDesc.TextXAlignment = Enum.TextXAlignment.Left
+                TDesc.TextYAlignment = Enum.TextYAlignment.Top
+                TDesc.TextWrapped = true
+                TDesc.ZIndex = 14
+                TDesc.Parent = TFrame
+                table.insert(Window.ThemeObjects, {Object = TDesc, Property = "TextColor3", Color = "TextDim"})
+            end
+            
             local TButton = Instance.new("TextButton")
             TButton.Size = UDim2.new(0, 40, 0, 22)
-            TButton.Position = UDim2.new(1, -50, 0.5, -11)
+            TButton.Position = UDim2.new(1, -50, cfg.Description and 0.5 or 0.5, -11)
             TButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             TButton.BorderSizePixel = 0
             TButton.Text = ""
@@ -1017,10 +1080,7 @@ function Library:CreateWindow(config)
                 end
             end
             
-            if Window.Config.SaveConfig and Window.SavedData[cfg.Name] ~= nil then
-                toggled = Window.SavedData[cfg.Name]
-            end
-            
+            if Window.Config.SaveConfig and Window.SavedData[cfg.Name] ~= nil then toggled = Window.SavedData[cfg.Name] end
             UpdateToggle(true)
             TButton.MouseButton1Click:Connect(function()
                 toggled = not toggled
@@ -1038,14 +1098,21 @@ function Library:CreateWindow(config)
         function Tab:AddSlider(cfg)
             cfg = cfg or {}
             cfg.Name = cfg.Name or "Slider"
+            cfg.Description = cfg.Description
             cfg.Min = cfg.Min or 0
             cfg.Max = cfg.Max or 100
             cfg.Default = cfg.Default or 50
             cfg.Increment = cfg.Increment or 1
+            cfg.Format = cfg.Format or "%.0f"
             cfg.Callback = cfg.Callback or function() end
             
+            if cfg.Min >= cfg.Max then cfg.Max = cfg.Min + 100 end
+            if cfg.Increment <= 0 then cfg.Increment = 1 end
+            
+            local height = cfg.Description and 75 or 55
+            
             local SFrame = Instance.new("Frame")
-            SFrame.Size = UDim2.new(1, 0, 0, 55)
+            SFrame.Size = UDim2.new(1, 0, 0, height)
             SFrame.BackgroundColor3 = Window.Theme.Light
             SFrame.BackgroundTransparency = 0.5
             SFrame.BorderSizePixel = 0
@@ -1065,11 +1132,27 @@ function Library:CreateWindow(config)
             SLabel.ZIndex = 14
             SLabel.Parent = SFrame
             
+            if cfg.Description then
+                local SDesc = Instance.new("TextLabel")
+                SDesc.Size = UDim2.new(1, -30, 0, 15)
+                SDesc.Position = UDim2.new(0, 15, 0, 28)
+                SDesc.BackgroundTransparency = 1
+                SDesc.Text = cfg.Description
+                SDesc.Font = Enum.Font.Gotham
+                SDesc.TextSize = 11
+                SDesc.TextColor3 = Window.Theme.TextDim
+                SDesc.TextXAlignment = Enum.TextXAlignment.Left
+                SDesc.TextWrapped = true
+                SDesc.ZIndex = 14
+                SDesc.Parent = SFrame
+                table.insert(Window.ThemeObjects, {Object = SDesc, Property = "TextColor3", Color = "TextDim"})
+            end
+            
             local SValue = Instance.new("TextLabel")
             SValue.Size = UDim2.new(0, 50, 0, 20)
-            SValue.Position = UDim2.new(1, -55, 0, 8)
+            SValue.Position = UDim2.new(1, -55, cfg.Description and 0, 8)
             SValue.BackgroundTransparency = 1
-            SValue.Text = tostring(cfg.Default)
+            SValue.Text = string.format(cfg.Format, cfg.Default)
             SValue.Font = Enum.Font.GothamBold
             SValue.TextSize = 14
             SValue.TextColor3 = Window.Theme.Accent
@@ -1079,7 +1162,7 @@ function Library:CreateWindow(config)
             
             local SBar = Instance.new("Frame")
             SBar.Size = UDim2.new(1, -30, 0, 6)
-            SBar.Position = UDim2.new(0, 15, 1, -18)
+            SBar.Position = UDim2.new(0, 15, 1, cfg.Description and -22 or -18)
             SBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             SBar.BorderSizePixel = 0
             SBar.ZIndex = 14
@@ -1119,7 +1202,7 @@ function Library:CreateWindow(config)
                 currentValue = value
                 
                 SFill.Size = UDim2.new(pos, 0, 1, 0)
-                SValue.Text = tostring(value)
+                SValue.Text = string.format(cfg.Format, value)
                 task.spawn(cfg.Callback, value)
                 
                 if Window.Config.SaveConfig then
@@ -1144,7 +1227,7 @@ function Library:CreateWindow(config)
                     if inputConn then inputConn:Disconnect() end
                 end
             end
-
+    
             SBar.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then stopDrag() end
             end)
@@ -1154,13 +1237,11 @@ function Library:CreateWindow(config)
             end)
             table.insert(Window.Connections, inputConn)
             
-            if Window.Config.SaveConfig and Window.SavedData[cfg.Name] ~= nil then
-                currentValue = Window.SavedData[cfg.Name]
-            end
+            if Window.Config.SaveConfig and Window.SavedData[cfg.Name] ~= nil then currentValue = Window.SavedData[cfg.Name] end
             
             local initPos = (currentValue - cfg.Min) / (cfg.Max - cfg.Min)
             SFill.Size = UDim2.new(initPos, 0, 1, 0)
-            SValue.Text = tostring(currentValue)
+            SValue.Text = string.format(cfg.Format, currentValue)
             
             return {
                 Set = function(_, v)
@@ -1168,8 +1249,11 @@ function Library:CreateWindow(config)
                     currentValue = v
                     local pos = (v - cfg.Min) / (cfg.Max - cfg.Min)
                     SFill.Size = UDim2.new(pos, 0, 1, 0)
-                    SValue.Text = tostring(v)
+                    SValue.Text = string.format(cfg.Format, v)
                     task.spawn(cfg.Callback, v)
+                end,
+                Get = function(_)
+                    return currentValue
                 end
             }
         end
@@ -1179,6 +1263,7 @@ function Library:CreateWindow(config)
             cfg.Name = cfg.Name or "Input"
             cfg.Default = cfg.Default or ""
             cfg.Placeholder = cfg.Placeholder or "Type here..."
+            cfg.NumbersOnly = cfg.NumbersOnly or false
             cfg.Callback = cfg.Callback or function() end
             
             local IFrame = Instance.new("Frame")
@@ -1221,6 +1306,12 @@ function Library:CreateWindow(config)
             table.insert(Window.ThemeObjects, {Object = IFrame, Property = "BackgroundColor3", Color = "Light"})
             table.insert(Window.ThemeObjects, {Object = ILabel, Property = "TextColor3", Color = "Text"})
             
+            if cfg.NumbersOnly then
+                IBox:GetPropertyChangedSignal("Text"):Connect(function()
+                    IBox.Text = IBox.Text:gsub("%D", "")
+                end)
+            end
+            
             IBox.FocusLost:Connect(function()
                 task.spawn(cfg.Callback, IBox.Text)
                 if Window.Config.SaveConfig then
@@ -1229,7 +1320,10 @@ function Library:CreateWindow(config)
                 end
             end)
             
-            return { Set = function(_, v) IBox.Text = tostring(v) end }
+            return {
+                Set = function(_, v) IBox.Text = tostring(v) end,
+                Get = function(_) return IBox.Text end
+            }
         end
 
         function Tab:AddDropdown(cfg)
@@ -1237,6 +1331,7 @@ function Library:CreateWindow(config)
             cfg.Name = cfg.Name or "Dropdown"
             cfg.Options = cfg.Options or {"Option 1", "Option 2"}
             cfg.Default = cfg.Default or cfg.Options[1]
+            cfg.Multi = cfg.Multi or false
             cfg.Callback = cfg.Callback or function() end
             
             local DFrame = Instance.new("Frame")
@@ -1261,14 +1356,22 @@ function Library:CreateWindow(config)
             DLabel.ZIndex = 14
             DLabel.Parent = DFrame
             
-            local selected = cfg.Default
+            local selected = cfg.Multi and {} or cfg.Default
+            
+            local function GetDisplayText()
+                if cfg.Multi then
+                    if #selected == 0 then return "None ↓"
+                    elseif #selected == 1 then return selected[1] .. " ↓"
+                    else return #selected .. " selected ↓" end
+                else return selected .. " ↓" end
+            end
             
             local DButton = Instance.new("TextButton")
             DButton.Size = UDim2.new(0, 110, 0, 26)
             DButton.Position = UDim2.new(1, -120, 0.5, -13)
             DButton.BackgroundColor3 = Window.Theme.Dark
             DButton.BorderSizePixel = 0
-            DButton.Text = selected .. " ↓"
+            DButton.Text = GetDisplayText()
             DButton.Font = Enum.Font.Gotham
             DButton.TextSize = 12
             DButton.TextColor3 = Window.Theme.Text
@@ -1277,11 +1380,15 @@ function Library:CreateWindow(config)
             DButton.Parent = DFrame
             Utilities:AddCorner(DButton, 6)
             
-            local DList = Instance.new("Frame")
+            local DList = Instance.new("ScrollingFrame")
             DList.Size = UDim2.new(1, 0, 0, 0)
             DList.Position = UDim2.new(0, 0, 1, 5)
             DList.BackgroundColor3 = Window.Theme.Dark
             DList.BorderSizePixel = 0
+            DList.ScrollBarThickness = 4
+            DList.ScrollBarImageColor3 = Window.Theme.Primary
+            DList.CanvasSize = UDim2.new(0, 0, 0, 0)
+            DList.Visible = false
             DList.ZIndex = 20
             DList.Parent = DFrame
             Utilities:AddCorner(DList, 6)
@@ -1297,44 +1404,75 @@ function Library:CreateWindow(config)
             table.insert(Window.ThemeObjects, {Object = DButton, Property = "BackgroundColor3", Color = "Dark"})
             table.insert(Window.ThemeObjects, {Object = DLabel, Property = "TextColor3", Color = "Text"})
             table.insert(Window.ThemeObjects, {Object = DList, Property = "BackgroundColor3", Color = "Dark"})
-
-            DButton.MouseButton1Click:Connect(function()
-                expanded = not expanded
-                if expanded then
-                    DList.Visible = true
-                    local listHeight = math.min(#cfg.Options * 28, 150)
-                    Utilities:Tween(DFrame, {Size = UDim2.new(1, 0, 0, 40 + listHeight + 5)}, 0.3, Enum.EasingStyle.Quart)
-                    Utilities:Tween(DList, {Size = UDim2.new(1, 0, 0, listHeight)}, 0.3, Enum.EasingStyle.Quart)
-                    DButton.Text = "↑"
-                else
-                    Utilities:Tween(DList, {Size = UDim2.new(1, 0, 0, 0)}, 0.3, Enum.EasingStyle.Quart)
-                    task.wait(0.3)
-                    DList.Visible = false
-                    DButton.Text = selected .. " ↓"
-                    Utilities:Tween(DFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.3, Enum.EasingStyle.Quart)
-                end
-            end)
-            
-            local function RefreshOptions()
-                for _, child in ipairs(DList:GetChildren()) do
-                    if child:IsA("TextButton") then child:Destroy() end
-                end
+    
+            local function CreateOptionButton(option)
+                local OButton = Instance.new("TextButton")
+                OButton.Size = UDim2.new(1, 0, 0, 26)
+                OButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                OButton.BackgroundTransparency = 0.95
+                OButton.BorderSizePixel = 0
+                OButton.Text = option
+                OButton.Font = Enum.Font.Gotham
+                OButton.TextSize = 12
+                OButton.TextColor3 = Window.Theme.Text
+                OButton.AutoButtonColor = false
+                OButton.ZIndex = 21
+                OButton.Parent = DList
+                Utilities:AddCorner(OButton, 4)
                 
-                for i, option in ipairs(cfg.Options) do
-                    local OButton = Instance.new("TextButton")
-                    OButton.Size = UDim2.new(1, 0, 0, 26)
-                    OButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    OButton.BackgroundTransparency = 0.95
-                    OButton.BorderSizePixel = 0
-                    OButton.Text = option
-                    OButton.Font = Enum.Font.Gotham
-                    OButton.TextSize = 12
-                    OButton.TextColor3 = Window.Theme.Text
-                    OButton.AutoButtonColor = false
-                    OButton.ZIndex = 21
-                    OButton.Parent = DList
-                    Utilities:AddCorner(OButton, 4)
+                if cfg.Multi then
+                    local Check = Instance.new("Frame")
+                    Check.Size = UDim2.new(0, 16, 0, 16)
+                    Check.Position = UDim2.new(1, -20, 0.5, -8)
+                    Check.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                    Check.BorderSizePixel = 0
+                    Check.ZIndex = 22
+                    Check.Parent = OButton
+                    Utilities:AddCorner(Check, 4)
                     
+                    local CheckMark = Instance.new("TextLabel")
+                    CheckMark.Size = UDim2.new(1, 0, 1, 0)
+                    CheckMark.BackgroundTransparency = 1
+                    CheckMark.Text = "✓"
+                    CheckMark.Font = Enum.Font.GothamBold
+                    CheckMark.TextSize = 14
+                    CheckMark.TextColor3 = Window.Theme.Primary
+                    CheckMark.Visible = false
+                    CheckMark.ZIndex = 23
+                    CheckMark.Parent = Check
+                    
+                    OButton.MouseButton1Click:Connect(function()
+                        local idx = table.find(selected, option)
+                        if idx then
+                            table.remove(selected, idx)
+                            CheckMark.Visible = false
+                            Check.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                        else
+                            table.insert(selected, option)
+                            CheckMark.Visible = true
+                            Check.BackgroundColor3 = Window.Theme.Primary
+                        end
+                        DButton.Text = GetDisplayText()
+                        task.spawn(cfg.Callback, selected)
+                        
+                        if Window.Config.SaveConfig then
+                            Window.SavedData[cfg.Name] = selected
+                            ConfigManager:Save(Window.Config.ConfigName, Window.SavedData)
+                        end
+                    end)
+                    
+                    -- Helper to update state when refreshing
+                    OButton.UpdateMultiState = function()
+                        local idx = table.find(selected, option)
+                        if idx then
+                            CheckMark.Visible = true
+                            Check.BackgroundColor3 = Window.Theme.Primary
+                        else
+                            CheckMark.Visible = false
+                            Check.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                        end
+                    end
+                else
                     OButton.MouseButton1Click:Connect(function()
                         selected = option
                         DButton.Text = option .. " ↓"
@@ -1344,7 +1482,52 @@ function Library:CreateWindow(config)
                         DList.Visible = false
                         Utilities:Tween(DFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.3)
                         task.spawn(cfg.Callback, option)
+                        
+                        if Window.Config.SaveConfig then
+                            Window.SavedData[cfg.Name] = option
+                            ConfigManager:Save(Window.Config.ConfigName, Window.SavedData)
+                        end
                     end)
+                end
+            end
+            
+            DButton.MouseButton1Click:Connect(function()
+                expanded = not expanded
+                if expanded then
+                    DList.Visible = true
+                    local listHeight = math.min(#cfg.Options * 28, 150)
+                    Utilities:Tween(DFrame, {Size = UDim2.new(1, 0, 0, 40 + listHeight + 5)}, 0.3, Enum.EasingStyle.Quart)
+                    Utilities:Tween(DList, {Size = UDim2.new(1, 0, 0, listHeight)}, 0.3, Enum.EasingStyle.Quart)
+                    DButton.Text = GetDisplayText():gsub("↓", "↑")
+                else
+                    Utilities:Tween(DList, {Size = UDim2.new(1, 0, 0, 0)}, 0.3)
+                    DButton.Text = GetDisplayText()
+                    task.wait(0.3)
+                    DList.Visible = false
+                    Utilities:Tween(DFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.3)
+                end
+            end)
+            
+            DLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                DList.CanvasSize = UDim2.new(0, 0, 0, DLayout.AbsoluteContentSize.Y)
+            end)
+
+            local function RefreshOptions()
+                for _, child in ipairs(DList:GetChildren()) do
+                    if child:IsA("TextButton") then child:Destroy() end
+                end
+                
+                for _, option in ipairs(cfg.Options) do
+                    CreateOptionButton(option)
+                end
+                
+                if cfg.Multi and Window.Config.SaveConfig and Window.SavedData[cfg.Name] ~= nil then
+                    selected = Window.SavedData[cfg.Name]
+                    for _, child in ipairs(DList:GetChildren()) do
+                        if child:IsA("TextButton") and child.UpdateMultiState then
+                            child.UpdateMultiState()
+                        end
+                    end
                 end
             end
             
@@ -1353,11 +1536,11 @@ function Library:CreateWindow(config)
             return {
                 Set = function(_, v)
                     selected = v
-                    DButton.Text = v .. " ↓"
+                    DButton.Text = GetDisplayText()
                     task.spawn(cfg.Callback, v)
                 end,
-                Refresh = function(_, newOpts)
-                    cfg.Options = newOpts
+                Refresh = function(_, newOptions)
+                    cfg.Options = newOptions
                     RefreshOptions()
                 end
             }
@@ -1423,6 +1606,11 @@ function Library:CreateWindow(config)
                     Utilities:Tween(KButton, {BackgroundColor3 = Window.Theme.Dark, TextColor3 = Window.Theme.Primary}, 0.2)
                     listening = false
                     task.spawn(cfg.Callback, currentKey)
+                    
+                    if Window.Config.SaveConfig then
+                        Window.SavedData[cfg.Name] = currentKey.Name
+                        ConfigManager:Save(Window.Config.ConfigName, Window.SavedData)
+                    end
                 end
             end)
             table.insert(Window.Connections, keyConn)
@@ -1431,14 +1619,109 @@ function Library:CreateWindow(config)
                 Set = function(_, key)
                     currentKey = key
                     KButton.Text = key.Name
+                end,
+                Get = function(_)
+                    return currentKey
                 end
             }
         end
-
+        
+        function Tab:AddColorPicker(cfg)
+            cfg = cfg or {}
+            cfg.Name = cfg.Name or "Color Picker"
+            cfg.Default = cfg.Default or Color3.fromRGB(255, 255, 255)
+            cfg.Callback = cfg.Callback or function() end
+            
+            local CPFrame = Instance.new("Frame")
+            CPFrame.Size = UDim2.new(1, 0, 0, 40)
+            CPFrame.BackgroundColor3 = Window.Theme.Light
+            CPFrame.BackgroundTransparency = 0.5
+            CPFrame.BorderSizePixel = 0
+            CPFrame.ZIndex = 13
+            CPFrame.Parent = TabContent
+            Utilities:AddCorner(CPFrame, 8)
+            
+            local CPLabel = Instance.new("TextLabel")
+            CPLabel.Size = UDim2.new(1, -100, 1, 0)
+            CPLabel.Position = UDim2.new(0, 15, 0, 0)
+            CPLabel.BackgroundTransparency = 1
+            CPLabel.Text = cfg.Name
+            CPLabel.Font = Enum.Font.GothamSemibold
+            CPLabel.TextSize = 14
+            CPLabel.TextColor3 = Window.Theme.Text
+            CPLabel.TextXAlignment = Enum.TextXAlignment.Left
+            CPLabel.ZIndex = 14
+            CPLabel.Parent = CPFrame
+            
+            local CPPreview = Instance.new("TextButton")
+            CPPreview.Size = UDim2.new(0, 80, 0, 26)
+            CPPreview.Position = UDim2.new(1, -90, 0.5, -13)
+            CPPreview.BackgroundColor3 = cfg.Default
+            CPPreview.BorderSizePixel = 0
+            CPPreview.Text = ""
+            CPPreview.AutoButtonColor = false
+            CPPreview.ZIndex = 14
+            CPPreview.Parent = CPFrame
+            Utilities:AddCorner(CPPreview, 6)
+            Utilities:AddStroke(CPPreview, Window.Theme.Text, 1)
+            
+            local currentColor = cfg.Default
+            
+            -- Cycle Colors Preset
+            local colors = {
+                Color3.fromRGB(255, 0, 0),
+                Color3.fromRGB(255, 127, 0),
+                Color3.fromRGB(255, 255, 0),
+                Color3.fromRGB(0, 255, 0),
+                Color3.fromRGB(0, 255, 255),
+                Color3.fromRGB(0, 0, 255),
+                Color3.fromRGB(139, 0, 255),
+                Color3.fromRGB(255, 0, 255),
+                Color3.fromRGB(255, 255, 255),
+                Color3.fromRGB(128, 128, 128),
+                Color3.fromRGB(0, 0, 0)
+            }
+            
+            CPPreview.MouseButton1Click:Connect(function()
+                local currentIndex = 1
+                for i, color in ipairs(colors) do
+                    if color == currentColor then currentIndex = i break end
+                end
+                currentIndex = currentIndex + 1
+                if currentIndex > #colors then currentIndex = 1 end
+                
+                currentColor = colors[currentIndex]
+                CPPreview.BackgroundColor3 = currentColor
+                task.spawn(cfg.Callback, currentColor)
+                
+                if Window.Config.SaveConfig then
+                    Window.SavedData[cfg.Name] = {currentColor.R * 255, currentColor.G * 255, currentColor.B * 255}
+                    ConfigManager:Save(Window.Config.ConfigName, Window.SavedData)
+                end
+            end)
+            
+            if Window.Config.SaveConfig and Window.SavedData[cfg.Name] ~= nil then
+                local saved = Window.SavedData[cfg.Name]
+                currentColor = Color3.fromRGB(saved[1], saved[2], saved[3])
+                CPPreview.BackgroundColor3 = currentColor
+            end
+            
+            return {
+                Set = function(_, color)
+                    currentColor = color
+                    CPPreview.BackgroundColor3 = color
+                    task.spawn(cfg.Callback, color)
+                end,
+                Get = function(_)
+                    return currentColor
+                end
+            }
+        end
+        
         return Tab
     end
     
-    -- Default Settings Tab
+    -- Settings Tab
     local SettingsTab = Window:CreateTab({Name = "⚙️ Settings"})
     SettingsTab:AddSection("Interface")
     
@@ -1465,7 +1748,7 @@ function Library:CreateWindow(config)
             Name = "Save Config",
             Callback = function()
                 ConfigManager:Save(Window.Config.ConfigName, Window.SavedData)
-                Window:Notify({Title = "Saved", Content = "Configuration saved successfully.", Type = "Success"})
+                Window:Notify({Title = "Saved", Content = "Configuration saved.", Type = "Success"})
             end
         })
         SettingsTab:AddButton({
@@ -1473,13 +1756,12 @@ function Library:CreateWindow(config)
             Callback = function()
                 Window.SavedData = {}
                 ConfigManager:Save(Window.Config.ConfigName, {})
-                Window:Notify({Title = "Reset", Content = "Configuration cleared.", Type = "Warning"})
+                Window:Notify({Title = "Reset", Content = "Config cleared.", Type = "Warning"})
             end
         })
     end
     
     getgenv().AdvancedUILibrary_Instance = Window
-    
     return Window
 end
 
