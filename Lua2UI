@@ -1,11 +1,12 @@
 --[[ 
-    Den's UI - Master Version
-    "No Cap Fr Fr" Edition
-    
-    Easy Mode: Use Theme = "Neon" or "Cyberpunk" - No RGBs needed.
-    
+    Den's UI - "No Cap Fr Fr" Edition
     Made by @1uvva
-    Big W to: @celestialdev, @anatawahitoka, @sixx_ezzz
+    
+    BIG W TO: @celestialdev, @anatawahitoka, @sixx_ezzz
+    
+    USAGE:
+    Just select a Theme by name (e.g., "Neon", "Ocean", "Cyberpunk").
+    No manual RGB required unless you want to be fancy.
 --]]
 
 local Library = {}
@@ -115,7 +116,7 @@ end
 
 function Utility:Stroke(Obj, Color, Thickness)
     local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color or Color3.fromRGB(255, 255, 255)
+    Stroke.Color = Color or Color3.fromRGB(255,255,255)
     Stroke.Thickness = Thickness or 1
     Stroke.Parent = Obj
     return Stroke
@@ -159,7 +160,7 @@ function Library:Create(Config)
         Size = UDim2.new(0, 160, 0, 22),
         Position = UDim2.new(1, -170, 0, 10),
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.2, -- Glass vibes
+        BackgroundTransparency = 0.3,
         Text = "Made by @1uvva",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextSize = 15,
@@ -170,11 +171,11 @@ function Library:Create(Config)
     })
     Utility:Circle(Watermark, 20)
     
-    -- THEME HANDLING (Easy Mode + Manual Override)
+    -- THEME HANDLING (Easy Mode)
     local ThemeName = Config.Theme or "Default"
     local Theme = ThemePresets[ThemeName] or ThemePresets["Default"]
     
-    -- Manual overrides if user really wants them
+    -- Allow manual overrides if user wants to be sigma
     if Config.CustomAccent then Theme.Accent = Config.CustomAccent end
     if Config.CustomMain then Theme.Main = Config.CustomMain end
     
@@ -189,7 +190,7 @@ function Library:Create(Config)
     Utility:Circle(WindowFrame, 12)
     Utility:Stroke(WindowFrame, Theme.Border)
     
-    -- BLUR EFFECT
+    -- BLUR
     local Blur = Instance.new("BlurEffect", Lighting)
     Blur.Size = 0
     Blur.Name = "DenBlur"
@@ -236,7 +237,7 @@ function Library:Create(Config)
         Position = UDim2.new(1, -70, 0.5, -10),
         BackgroundColor3 = Theme.Accent,
         Text = "-",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = Color3.fromRGB(255,255,255),
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         ZIndex = 12,
@@ -249,7 +250,7 @@ function Library:Create(Config)
         Position = UDim2.new(1, -35, 0.5, -10),
         BackgroundColor3 = Theme.Error,
         Text = "x",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextColor3 = Color3.fromRGB(255,255,255),
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         ZIndex = 12,
@@ -257,7 +258,7 @@ function Library:Create(Config)
     })
     Utility:Circle(CloseBtn, 4)
 
-    -- LAYOUT (Sidebar & Content)
+    -- LAYOUT
     local TabLayout = Utility:Create("Frame", {
         Size = UDim2.new(0, 140, 1, -35),
         Position = UDim2.new(0, 0, 0, 35),
@@ -307,7 +308,7 @@ function Library:Create(Config)
         end
     end)
 
-    -- STATE MANAGEMENT
+    -- STATE
     local State = {
         Tabs = {},
         Open = true,
@@ -316,7 +317,6 @@ function Library:Create(Config)
 
     local Window = {
         SetTitle = function(Text) TitleText.Text = Text end,
-        GetTheme = function() return Theme end,
         Close = function()
             Utility:Tween(WindowFrame, {0.3, Enum.EasingStyle.Back}, {Size = UDim2.new(0, 0, 0, 0)})
             Utility:Tween(Blur, {0.3}, {Size = 0})
@@ -370,7 +370,7 @@ function Library:Create(Config)
                 Size = UDim2.new(1, -50, 0, 25),
                 Position = UDim2.new(0, 40, 0, 5),
                 BackgroundTransparency = 1,
-                Text = tostring(Title), -- SAFE CAST FIX
+                Text = Title,
                 TextSize = 14,
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.Text,
@@ -379,10 +379,10 @@ function Library:Create(Config)
             })
 
             local ContentText = Utility:Create("TextLabel", {
-                Size = UDim2.new(1, -50, 1, -30),
-                Position = UDim2.new(0, 40, 0, 30),
+                Size = UDim2.new(1, -20, 1, -30),
+                Position = UDim2.new(0, 10, 0, 30),
                 BackgroundTransparency = 1,
-                Text = tostring(Content), -- SAFE CAST FIX
+                Text = Content,
                 TextSize = 12,
                 Font = Enum.Font.Gotham,
                 TextColor3 = Theme.TextDim,
@@ -391,7 +391,6 @@ function Library:Create(Config)
                 Parent = Holder
             })
 
-            -- Animate In
             Utility:Tween(Holder, {0.4, Enum.EasingStyle.Quart}, {
                 Position = UDim2.new(1, -310, 1, -80)
             })
@@ -472,7 +471,6 @@ function Library:Create(Config)
             TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentList.AbsoluteContentSize.Y + 10)
         end)
 
-        -- SWITCH TABS
         TabBtn.MouseButton1Click:Connect(function()
             for _, v in pairs(State.Tabs) do
                 v.Content.Visible = false
@@ -481,7 +479,7 @@ function Library:Create(Config)
             end
             TabContent.Visible = true
             TabBtn.BackgroundColor3 = Theme.Accent
-            TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TabBtn.TextColor3 = Color3.fromRGB(255,255,255)
         end)
 
         State.Tabs[#State.Tabs + 1] = {
@@ -571,7 +569,7 @@ function Library:Create(Config)
             local Indicator = Utility:Create("Frame", {
                 Size = UDim2.new(0, 16, 0, 16),
                 Position = UDim2.new(0, 2, 0.5, -8),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundColor3 = Color3.fromRGB(255,255,255),
                 Parent = Btn
             })
             Utility:Circle(Indicator, 20)
@@ -590,6 +588,7 @@ function Library:Create(Config)
             end
             
             if Default then Update() end
+
             Btn.MouseButton1Click:Connect(function()
                 State = not State
                 Update()
@@ -721,7 +720,7 @@ function Library:Create(Config)
             })
             Utility:Circle(Btn, 6)
             Utility:Stroke(Btn, Theme.Border)
-            Utility:Padding(Btn, 0, 0, 0, 0, 10, 0)
+            Utility:Padding(Btn, 0,0,0,0, 10, 0)
 
             local List = Utility:Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 0),
@@ -760,7 +759,7 @@ function Library:Create(Config)
                         TextXAlignment = Enum.TextXAlignment.Left,
                         Parent = List
                     })
-                    Utility:Padding(O, 0, 0, 0, 0, 10, 0)
+                    Utility:Padding(O, 0,0,0,0, 10, 0)
                     O.MouseButton1Click:Connect(function()
                         Open = false
                         List.Visible = false
@@ -827,7 +826,7 @@ function Library:Create(Config)
         end
         
         function TabObj:ColorPicker(Text, Default, Callback)
-            Default = Default or Color3.fromRGB(255, 255, 255)
+            Default = Default or Color3.fromRGB(255,255,255)
             local CP = Utility:Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 35),
                 BackgroundTransparency = 1,
@@ -853,7 +852,6 @@ function Library:Create(Config)
             Utility:Circle(Preview, 4)
             Utility:Stroke(Preview, Theme.Border)
 
-            -- COLOR PICKER POPUP WINDOW
             local CP_Window = Utility:Create("Frame", {
                 Size = UDim2.new(0, 250, 0, 180),
                 Position = UDim2.new(0.5, -125, 0.5, -90),
@@ -864,11 +862,10 @@ function Library:Create(Config)
             Utility:Circle(CP_Window, 8)
             Utility:Stroke(CP_Window, Theme.Border)
             
-            -- Hue Slider
             local HueSlider = Utility:Create("Frame", {
                 Size = UDim2.new(1, -20, 0, 20),
                 Position = UDim2.new(0, 10, 0, 40),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundColor3 = Color3.fromRGB(255,255,255),
                 Parent = CP_Window
             })
             local HueGrad = Instance.new("UIGradient", HueSlider)
@@ -885,12 +882,11 @@ function Library:Create(Config)
             local HKnob = Utility:Create("Frame", {
                 Size = UDim2.new(0, 10, 1, 4),
                 Position = UDim2.new(0.5, -5, 0, -2),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundColor3 = Color3.fromRGB(255,255,255),
                 Parent = HueSlider
             })
-            Utility:Stroke(HKnob, Color3.fromRGB(0, 0, 0))
+            Utility:Stroke(HKnob, Color3.fromRGB(0,0,0))
 
-            -- Saturation Slider
             local SatSlider = Utility:Create("Frame", {
                 Size = UDim2.new(1, -20, 0, 20),
                 Position = UDim2.new(0, 10, 0, 70),
@@ -900,21 +896,20 @@ function Library:Create(Config)
             local SKnob = Utility:Create("Frame", {
                 Size = UDim2.new(0, 10, 1, 4),
                 Position = UDim2.new(1, -10, 0, -2),
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+                BackgroundColor3 = Color3.fromRGB(0,0,0),
                 Parent = SatSlider
             })
             
-            -- Value Slider
             local ValSlider = Utility:Create("Frame", {
                 Size = UDim2.new(1, -20, 0, 20),
                 Position = UDim2.new(0, 10, 0, 100),
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+                BackgroundColor3 = Color3.fromRGB(0,0,0),
                 Parent = CP_Window
             })
             local VKnob = Utility:Create("Frame", {
                 Size = UDim2.new(0, 10, 1, 4),
                 Position = UDim2.new(1, -10, 0, -2),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundColor3 = Color3.fromRGB(255,255,255),
                 Parent = ValSlider
             })
 
@@ -927,7 +922,6 @@ function Library:Create(Config)
             })
             Utility:Circle(CloseCP, 4)
 
-            -- Logic
             local SelectedColor = Default
             local H, S, V = Color3.toHSV(Default)
             
@@ -939,7 +933,6 @@ function Library:Create(Config)
             end
             UpdateUI()
 
-            -- Dragging Logic
             local DragH = false
             HueSlider.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragH = true end end)
             UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragH = false end end)
