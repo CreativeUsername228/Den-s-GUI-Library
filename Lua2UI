@@ -1,16 +1,12 @@
 --[[ 
-    Nebula UI Library
-    The Ultimate Roblox Interface
-    By: AI Assistant
+    Den's UI - "No Cap Fr Fr" Edition
+    Made by @1uvva
     
-    Features:
-    - Beautiful Glassmorphism Design
-    - Custom Hue/Saturation Color Picker
-    - Tab System with Icons
-    - Draggable Window (Desktop & Mobile)
-    - Config Saving/Loading
-    - Animated Notifications
-    - All Standard Elements: Button, Toggle, Slider, Input, Dropdown, Keybind, Label, etc.
+    BIG W TO: @celestialdev, @anatawahitoka, @sixx_ezzz
+    
+    USAGE:
+    Just select a Theme by name (e.g., "Neon", "Ocean", "Cyberpunk").
+    No manual RGB required unless you want to be fancy.
 --]]
 
 local Library = {}
@@ -27,48 +23,76 @@ local Players = game:GetService("Players")
 
 local Player = Players.LocalPlayer
 
--- Internal References
-local Assets = {
-    Icons = {
-        Settings = "rbxassetid://3926305904",
-        Home = "rbxassetid://3926305904",
-        List = "rbxassetid://3926305904",
-        User = "rbxassetid://3926305904",
+-- ============================================
+-- THEME PRESETS (The Sauce - Easy to use)
+-- ============================================
+local ThemePresets = {
+    ["Default"] = {
+        Main = Color3.fromRGB(20, 20, 20),
+        Secondary = Color3.fromRGB(30, 30, 30),
+        Accent = Color3.fromRGB(255, 50, 50),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(150, 150, 150),
+        Border = Color3.fromRGB(50, 50, 50),
+        Success = Color3.fromRGB(0, 255, 0),
+        Warning = Color3.fromRGB(255, 200, 0),
+        Error = Color3.fromRGB(255, 0, 0),
+        BlurAmount = 24
+    },
+    ["Neon"] = {
+        Main = Color3.fromRGB(5, 5, 5),
+        Secondary = Color3.fromRGB(15, 15, 15),
+        Accent = Color3.fromRGB(0, 255, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(200, 200, 200),
+        Border = Color3.fromRGB(0, 100, 100),
+        Success = Color3.fromRGB(0, 255, 0),
+        Warning = Color3.fromRGB(255, 255, 0),
+        Error = Color3.fromRGB(255, 0, 255),
+        BlurAmount = 20
+    },
+    ["Cyberpunk"] = {
+        Main = Color3.fromRGB(15, 15, 20),
+        Secondary = Color3.fromRGB(25, 25, 35),
+        Accent = Color3.fromRGB(180, 0, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(200, 200, 200),
+        Border = Color3.fromRGB(80, 0, 100),
+        Success = Color3.fromRGB(0, 255, 100),
+        Warning = Color3.fromRGB(255, 255, 0),
+        Error = Color3.fromRGB(255, 50, 50),
+        BlurAmount = 24
+    },
+    ["Ocean"] = {
+        Main = Color3.fromRGB(10, 15, 20),
+        Secondary = Color3.fromRGB(20, 30, 40),
+        Accent = Color3.fromRGB(0, 150, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(180, 200, 220),
+        Border = Color3.fromRGB(0, 50, 100),
+        Success = Color3.fromRGB(0, 255, 200),
+        Warning = Color3.fromRGB(255, 200, 0),
+        Error = Color3.fromRGB(255, 100, 100),
+        BlurAmount = 24
+    },
+    ["Rose"] = {
+        Main = Color3.fromRGB(25, 10, 15),
+        Secondary = Color3.fromRGB(35, 20, 25),
+        Accent = Color3.fromRGB(255, 100, 150),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(220, 200, 200),
+        Border = Color3.fromRGB(100, 50, 60),
+        Success = Color3.fromRGB(100, 255, 150),
+        Warning = Color3.fromRGB(255, 220, 100),
+        Error = Color3.fromRGB(255, 80, 80),
+        BlurAmount = 24
     }
 }
 
--- Theme Engine
-local DefaultTheme = {
-    Main = Color3.fromRGB(20, 20, 25),
-    Secondary = Color3.fromRGB(25, 25, 30),
-    Accent = Color3.fromRGB(88, 101, 242),
-    Text = Color3.fromRGB(255, 255, 255),
-    TextDim = Color3.fromRGB(130, 130, 150),
-    Border = Color3.fromRGB(40, 40, 50),
-    Success = Color3.fromRGB(46, 204, 113),
-    Warning = Color3.fromRGB(241, 196, 15),
-    Error = Color3.fromRGB(231, 76, 60),
-    BlurAmount = 24
-}
-
-local function DeepCopy(original)
-    local copy
-    if type(original) == 'table' then
-        copy = {}
-        for key, value in next, original, nil do
-            copy[DeepCopy(key)] = DeepCopy(value)
-        end
-        setmetatable(copy, DeepCopy(getmetatable(original)))
-    else -- number, string, boolean, etc
-        copy = original
-    end
-    return copy
-end
-
--- Utility
+-- Utility Functions
 local Utility = {}
 
-function Utility:Tween(Object, Info, Goal, Override)
+function Utility:Tween(Object, Info, Goal)
     if not Object or not Object.Parent then return end
     local Tween = TweenService:Create(Object, TweenInfo.new(unpack(Info)), Goal)
     Tween:Play()
@@ -92,7 +116,7 @@ end
 
 function Utility:Stroke(Obj, Color, Thickness)
     local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color or Color3.fromRGB(255, 255, 255)
+    Stroke.Color = Color or Color3.fromRGB(255,255,255)
     Stroke.Thickness = Thickness or 1
     Stroke.Parent = Obj
     return Stroke
@@ -119,36 +143,46 @@ function Utility:Padding(Obj, Top, Bottom, Left, Right)
     return Pad
 end
 
-function Utility:FromHex(Hex)
-    Hex = Hex:gsub("#", "")
-    return Color3.fromRGB(tonumber("0x"..Hex:sub(1,2)), tonumber("0x"..Hex:sub(3,4)), tonumber("0x"..Hex:sub(5,6)))
-end
-
-function Utility:ToHex(Color)
-    return string.format("#%02X%02X%02X", Color.R*255, Color.G*255, Color.B*255)
-end
-
 -- Window Logic
 function Library:Create(Config)
     Config = Config or {}
     
-    -- Core Variables
+    -- CORE SETUP
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "NebulaUI_" .. (Config.Name or "Window")
+    ScreenGui.Name = "DenUI_" .. (Config.Name or "Window")
     ScreenGui.DisplayOrder = 100
     ScreenGui.IgnoreGuiInset = true
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    if syn then syn.protect_gui(ScreenGui, game:GetService("CoreGui")) end
     ScreenGui.Parent = CoreGui
     
-    local Theme = DeepCopy(DefaultTheme)
-    if Config.Theme then for k, v in pairs(Config.Theme) do Theme[k] = v end end
-
-    -- Window Frame
+    -- WATERMARK
+    local Watermark = Utility:Create("TextLabel", {
+        Size = UDim2.new(0, 160, 0, 22),
+        Position = UDim2.new(1, -170, 0, 10),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.3,
+        Text = "Made by @1uvva",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 15,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        ZIndex = 1000,
+        Parent = ScreenGui
+    })
+    Utility:Circle(Watermark, 20)
+    
+    -- THEME HANDLING (Easy Mode)
+    local ThemeName = Config.Theme or "Default"
+    local Theme = ThemePresets[ThemeName] or ThemePresets["Default"]
+    
+    -- Allow manual overrides if user wants to be sigma
+    if Config.CustomAccent then Theme.Accent = Config.CustomAccent end
+    if Config.CustomMain then Theme.Main = Config.CustomMain end
+    
+    -- MAIN WINDOW
     local WindowFrame = Utility:Create("Frame", {
-        Size = Config.Size or UDim2.new(0, 550, 0, 400),
-        Position = UDim2.new(0.5, -275, 0.5, -200),
+        Size = Config.Size or UDim2.new(0, 550, 0, 450),
+        Position = UDim2.new(0.5, -275, 0.5, -225),
         BackgroundColor3 = Theme.Main,
         Parent = ScreenGui,
         ZIndex = 10
@@ -156,18 +190,18 @@ function Library:Create(Config)
     Utility:Circle(WindowFrame, 12)
     Utility:Stroke(WindowFrame, Theme.Border)
     
-    -- Blur
+    -- BLUR
     local Blur = Instance.new("BlurEffect", Lighting)
     Blur.Size = 0
-    Blur.Name = ScreenGui.Name .. "_Blur"
+    Blur.Name = "DenBlur"
     
     task.spawn(function()
         Utility:Tween(Blur, {0.5}, {Size = Theme.BlurAmount})
-        Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = WindowFrame.Size}) -- Intro Animation
+        Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = WindowFrame.Size})
         WindowFrame.Size = UDim2.new(0, 0, 0, 0) 
     end)
 
-    -- Title Bar
+    -- TITLE BAR
     local TitleBar = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 0, 35),
         Position = UDim2.new(0, 0, 0, 0),
@@ -188,7 +222,7 @@ function Library:Create(Config)
         Size = UDim2.new(1, -100, 1, 0),
         Position = UDim2.new(0, 20, 0, 0),
         BackgroundTransparency = 1,
-        Text = Config.Name or "Nebula UI",
+        Text = Config.Name or "Den's UI",
         TextColor3 = Theme.Text,
         TextSize = 16,
         Font = Enum.Font.GothamBold,
@@ -197,7 +231,7 @@ function Library:Create(Config)
         Parent = TitleBar
     })
 
-    -- Controls
+    -- CONTROLS
     local MinBtn = Utility:Create("TextButton", {
         Size = UDim2.new(0, 30, 0, 20),
         Position = UDim2.new(1, -70, 0.5, -10),
@@ -224,7 +258,7 @@ function Library:Create(Config)
     })
     Utility:Circle(CloseBtn, 4)
 
-    -- Layout
+    -- LAYOUT
     local TabLayout = Utility:Create("Frame", {
         Size = UDim2.new(0, 140, 1, -35),
         Position = UDim2.new(0, 0, 0, 35),
@@ -250,7 +284,7 @@ function Library:Create(Config)
         Parent = WindowFrame
     })
 
-    -- Drag Logic (Desktop & Mobile)
+    -- DRAGGING
     local Dragging, DragInput, DragStart, StartPos
     TitleBar.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
@@ -274,16 +308,15 @@ function Library:Create(Config)
         end
     end)
 
-    -- State
+    -- STATE
     local State = {
         Tabs = {},
         Open = true,
-        ConfigName = Config.ConfigName or "NebulaConfig"
+        ConfigName = Config.ConfigName or "DenConfig"
     }
 
     local Window = {
         SetTitle = function(Text) TitleText.Text = Text end,
-        GetTheme = function() return Theme end,
         Close = function()
             Utility:Tween(WindowFrame, {0.3, Enum.EasingStyle.Back}, {Size = UDim2.new(0, 0, 0, 0)})
             Utility:Tween(Blur, {0.3}, {Size = 0})
@@ -296,7 +329,7 @@ function Library:Create(Config)
             if State.Open then
                 ScreenGui.Enabled = true
                 Utility:Tween(Blur, {0.3}, {Size = Theme.BlurAmount})
-                Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = Config.Size or UDim2.new(0, 550, 0, 400)})
+                Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = Config.Size or UDim2.new(0, 550, 0, 450)})
             else
                 Utility:Tween(Blur, {0.3}, {Size = 0})
                 Utility:Tween(WindowFrame, {0.3, Enum.EasingStyle.Back}, {Size = UDim2.new(0, 0, 0, 0)})
@@ -315,8 +348,8 @@ function Library:Create(Config)
             elseif Type == "Warning" then Color = Theme.Warning end
 
             local Holder = Utility:Create("Frame", {
-                Size = UDim2.new(0, 300, 0, 50),
-                Position = UDim2.new(1, 320, 1, -70),
+                Size = UDim2.new(0, 300, 0, 60),
+                Position = UDim2.new(1, 320, 1, -80),
                 BackgroundColor3 = Theme.Secondary,
                 Parent = NotifGui
             })
@@ -334,8 +367,8 @@ function Library:Create(Config)
             })
             
             local TText = Utility:Create("TextLabel", {
-                Size = UDim2.new(1, -50, 1, 0),
-                Position = UDim2.new(0, 40, 0, 0),
+                Size = UDim2.new(1, -50, 0, 25),
+                Position = UDim2.new(0, 40, 0, 5),
                 BackgroundTransparency = 1,
                 Text = Title,
                 TextSize = 14,
@@ -346,32 +379,24 @@ function Library:Create(Config)
             })
 
             local ContentText = Utility:Create("TextLabel", {
-                Size = UDim2.new(1, -20, 1, 0),
-                Position = UDim2.new(0, 10, 0, 25),
+                Size = UDim2.new(1, -20, 1, -30),
+                Position = UDim2.new(0, 10, 0, 30),
                 BackgroundTransparency = 1,
                 Text = Content,
                 TextSize = 12,
                 Font = Enum.Font.Gotham,
                 TextColor3 = Theme.TextDim,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                TextYAlignment = Enum.TextYAlignment.Top,
+                TextWrapped = true,
                 Parent = Holder
             })
 
-            -- Animate In
-            local YPos = Holder.Position.Y.Offset
-            Holder.Size = UDim2.new(0, 0, 0, 50)
             Utility:Tween(Holder, {0.4, Enum.EasingStyle.Quart}, {
-                Size = UDim2.new(0, 300, 0, math.max(50, (string.len(Content) > 40 and 70 or 50))),
-                Position = UDim2.new(1, -310, 1, -(math.max(50, (string.len(Content) > 40 and 70 or 50)) + 20))
+                Position = UDim2.new(1, -310, 1, -80)
             })
             
-            if Content:len() > 40 then
-                Holder.Size = UDim2.new(0, 300, 0, 70)
-            end
-
             task.delay(Duration, function()
-                Utility:Tween(Holder, {0.4, Enum.EasingStyle.Quart}, {Position = UDim2.new(1, 320, 1, YPos)})
+                Utility:Tween(Holder, {0.4, Enum.EasingStyle.Quart}, {Position = UDim2.new(1, 320, 1, -80)})
                 task.wait(0.4)
                 NotifGui:Destroy()
             end)
@@ -406,7 +431,7 @@ function Library:Create(Config)
         TabObj.Name = Name
         TabObj.ConfigData = {}
         
-        -- Tab Button
+        -- TAB BUTTON
         local TabBtn = Utility:Create("TextButton", {
             Size = UDim2.new(1, -10, 0, 35),
             BackgroundColor3 = Theme.Secondary,
@@ -419,7 +444,6 @@ function Library:Create(Config)
             Parent = TabList
         })
         Utility:Circle(TabBtn, 6)
-        Utility:Padding(TabBtn, 0, 0, 0, 0)
         
         if Icon then
             local Ico = Utility:Create("ImageLabel", {
@@ -431,7 +455,7 @@ function Library:Create(Config)
             })
         end
 
-        -- Tab Content
+        -- TAB CONTENT
         local TabContent = Utility:Create("ScrollingFrame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
@@ -447,18 +471,15 @@ function Library:Create(Config)
             TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentList.AbsoluteContentSize.Y + 10)
         end)
 
-        -- Switch Logic
         TabBtn.MouseButton1Click:Connect(function()
-            -- Reset others
             for _, v in pairs(State.Tabs) do
                 v.Content.Visible = false
                 v.Button.BackgroundColor3 = Theme.Secondary
                 v.Button.TextColor3 = Theme.TextDim
             end
-            -- Activate this
             TabContent.Visible = true
             TabBtn.BackgroundColor3 = Theme.Accent
-            TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            TabBtn.TextColor3 = Color3.fromRGB(255,255,255)
         end)
 
         State.Tabs[#State.Tabs + 1] = {
@@ -466,9 +487,7 @@ function Library:Create(Config)
             Content = TabContent,
             Button = TabBtn,
             ConfigData = {},
-            ApplyData = function(Data) 
-                -- Internal apply logic for save/load
-            end
+            ApplyData = function(Data) end
         }
 
         TabObj.Content = TabContent
@@ -568,7 +587,6 @@ function Library:Create(Config)
                 if Callback then Callback(State) end
             end
             
-            -- Init
             if Default then Update() end
 
             Btn.MouseButton1Click:Connect(function()
@@ -760,8 +778,55 @@ function Library:Create(Config)
             }
         end
         
+        function TabObj:Keybind(Text, Default, Callback)
+            Default = Default or Enum.KeyCode.F
+            local KB = Utility:Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 35),
+                BackgroundTransparency = 1,
+                Parent = TabContent
+            })
+            local Lbl = Utility:Create("TextLabel", {
+                Size = UDim2.new(1, -120, 1, 0),
+                Text = Text,
+                TextColor3 = Theme.Text,
+                Font = Enum.Font.GothamSemibold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                BackgroundTransparency = 1,
+                Parent = KB
+            })
+            local Btn = Utility:Create("TextButton", {
+                Size = UDim2.new(0, 100, 0, 25),
+                Position = UDim2.new(1, -110, 0.5, -12),
+                BackgroundColor3 = Theme.Secondary,
+                Text = "["..Default.Name.."]",
+                TextColor3 = Theme.Accent,
+                Parent = KB
+            })
+            Utility:Circle(Btn, 4)
+            Utility:Stroke(Btn, Theme.Border)
+
+            local Waiting = false
+            Btn.MouseButton1Click:Connect(function()
+                Waiting = true
+                Btn.Text = "[...]"
+            end)
+
+            UserInputService.InputBegan:Connect(function(Input, GPE)
+                if Waiting and not GPE then
+                    Waiting = false
+                    Default = Input.KeyCode
+                    Btn.Text = "["..Default.Name.."]"
+                    if Callback then Callback(Default) end
+                end
+            end)
+            
+            return {
+                Set = function(k) Default = k Btn.Text = "["..Default.Name.."]" end
+            }
+        end
+        
         function TabObj:ColorPicker(Text, Default, Callback)
-            Default = Default or Color3.fromRGB(255, 255, 255)
+            Default = Default or Color3.fromRGB(255,255,255)
             local CP = Utility:Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 35),
                 BackgroundTransparency = 1,
@@ -796,17 +861,6 @@ function Library:Create(Config)
             })
             Utility:Circle(CP_Window, 8)
             Utility:Stroke(CP_Window, Theme.Border)
-            
-            -- Saturation
-            local SatFrame = Utility:Create("Frame", {
-                Size = UDim2.new(1, -20, 0, 20),
-                Position = UDim2.new(0, 10, 0, 10),
-                BackgroundColor3 = Color3.fromHSV(0, 1, 1),
-                Parent = CP_Window
-            })
-            local SatGrad = Instance.new("UIGradient", SatFrame)
-            SatGrad.Color = ColorSequence.new(Color3.fromRGB(255,0,0), Color3.fromRGB(0,0,255))
-            -- Custom Saturation Gradient Logic is complex in one file, using HUE slider instead
             
             local HueSlider = Utility:Create("Frame", {
                 Size = UDim2.new(1, -20, 0, 20),
@@ -868,7 +922,6 @@ function Library:Create(Config)
             })
             Utility:Circle(CloseCP, 4)
 
-            -- Logic
             local SelectedColor = Default
             local H, S, V = Color3.toHSV(Default)
             
@@ -924,53 +977,6 @@ function Library:Create(Config)
                 CP_Window.Visible = false
                 if Callback then Callback(SelectedColor) end
             end)
-        end
-
-        function TabObj:Keybind(Text, Default, Callback)
-            Default = Default or Enum.KeyCode.F
-            local KB = Utility:Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 35),
-                BackgroundTransparency = 1,
-                Parent = TabContent
-            })
-            local Lbl = Utility:Create("TextLabel", {
-                Size = UDim2.new(1, -120, 1, 0),
-                Text = Text,
-                TextColor3 = Theme.Text,
-                Font = Enum.Font.GothamSemibold,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                BackgroundTransparency = 1,
-                Parent = KB
-            })
-            local Btn = Utility:Create("TextButton", {
-                Size = UDim2.new(0, 100, 0, 25),
-                Position = UDim2.new(1, -110, 0.5, -12),
-                BackgroundColor3 = Theme.Secondary,
-                Text = "["..Default.Name.."]",
-                TextColor3 = Theme.Accent,
-                Parent = KB
-            })
-            Utility:Circle(Btn, 4)
-            Utility:Stroke(Btn, Theme.Border)
-
-            local Waiting = false
-            Btn.MouseButton1Click:Connect(function()
-                Waiting = true
-                Btn.Text = "[...]"
-            end)
-
-            UserInputService.InputBegan:Connect(function(Input, GPE)
-                if Waiting and not GPE then
-                    Waiting = false
-                    Default = Input.KeyCode
-                    Btn.Text = "["..Default.Name.."]"
-                    if Callback then Callback(Default) end
-                end
-            end)
-            
-            return {
-                Set = function(k) Default = k Btn.Text = "["..Default.Name.."]" end
-            }
         end
         
         return TabObj
