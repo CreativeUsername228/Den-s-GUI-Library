@@ -1,5 +1,5 @@
 --[[ 
-    Den's UI - "No Cap Fr Fr" Edition
+    Den's UI - "No Cap Fr Fr" Edition (Fixed)
     Made by @1uvva
     
     BIG W TO: @celestialdev, @anatawahitoka, @sixx_ezzz
@@ -7,6 +7,17 @@
     USAGE:
     Just select a Theme by name (e.g., "Neon", "Ocean", "Cyberpunk").
     No manual RGB required unless you want to be fancy.
+    
+    FIXES:
+    - Fixed Utility:Create not parenting objects (UI was invisible).
+    - Fixed Utility:Padding argument mismatch in Dropdown.
+    - Fixed Window opening animation glitch.
+    - Added TabList CanvasSize automatic updating.
+    - Optimized Dragging logic (removed laggy tweens).
+    - Implemented Keybind trigger (now actually fires when pressed).
+    - Implemented Config Save/Load (now properly updates UI elements).
+    - Fixed ZIndex issues in ColorPicker.
+    - Fixed Blur effect duplication on re-run.
 --]]
 
 local Library = {}
@@ -94,7 +105,9 @@ local Utility = {}
 
 function Utility:Tween(Object, Info, Goal)
     if not Object or not Object.Parent then return end
-    local Tween = TweenService:Create(Object, TweenInfo.new(unpack(Info)), Goal)
+    -- Check if Info is a table or list
+    local TweenInfoData = typeof(Info) == "table" and TweenInfo.new(unpack(Info)) or Info
+    local Tween = TweenService:Create(Object, TweenInfoData, Goal)
     Tween:Play()
     return Tween
 end
@@ -103,6 +116,10 @@ function Utility:Create(Class, Props)
     local Obj = Instance.new(Class)
     for i, v in pairs(Props) do
         if i ~= "Parent" then Obj[i] = v end
+    end
+    -- FIX: Actually parent the object
+    if Props.Parent then
+        Obj.Parent = Props.Parent
     end
     return Obj
 end
@@ -191,14 +208,19 @@ function Library:Create(Config)
     Utility:Stroke(WindowFrame, Theme.Border)
     
     -- BLUR
-    local Blur = Instance.new("BlurEffect", Lighting)
-    Blur.Size = 0
+    -- FIX: Prevent duplicate blur effects
+    local Blur = Lighting:FindFirstChild("DenBlur")
+    if Blur then Blur:Destroy() end
+    
+    Blur = Instance.new("BlurEffect", Lighting)
     Blur.Name = "DenBlur"
+    Blur.Size = 0
     
     task.spawn(function()
+        -- FIX: Set size to 0 before tweening to ensure it opens from center
+        WindowFrame.Size = UDim2.new(0, 0, 0, 0)
         Utility:Tween(Blur, {0.5}, {Size = Theme.BlurAmount})
-        Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = WindowFrame.Size})
-        WindowFrame.Size = UDim2.new(0, 0, 0, 0) 
+        Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = Config.Size or UDim2.new(0, 550, 0, 450)})
     end)
 
     -- TITLE BAR
@@ -210,6 +232,8 @@ function Library:Create(Config)
         Parent = WindowFrame
     })
     local TitleCorner = Utility:Circle(TitleBar, 12)
+    
+    -- Mask to make title bar corners square at bottom (optional visual fix)
     local TitleMask = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 0, 10),
         Position = UDim2.new(0, 0, 1, -10),
@@ -274,7 +298,10 @@ function Library:Create(Config)
     })
     local TabListLayout = Instance.new("UIListLayout", TabList)
     TabListLayout.Padding = UDim.new(0, 5)
-    TabListLayout.Parent = TabList
+    -- FIX: Update TabList CanvasSize
+    TabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabList.CanvasSize = UDim2.new(0, 0, 0, TabListLayout.AbsoluteContentSize.Y + 10)
+    end)
 
     local ContentLayout = Utility:Create("Frame", {
         Size = UDim2.new(1, -140, 1, -35),
@@ -285,6 +312,7 @@ function Library:Create(Config)
     })
 
     -- DRAGGING
+    -- FIX: Optimized dragging to remove stuttery tweens
     local Dragging, DragInput, DragStart, StartPos
     TitleBar.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
@@ -304,7 +332,8 @@ function Library:Create(Config)
     UserInputService.InputChanged:Connect(function(Input)
         if Input == DragInput and Dragging then
             local Delta = Input.Position - DragStart
-            Utility:Tween(WindowFrame, {0.15}, {Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)})
+            -- Direct position update is smoother than Tween for dragging
+            WindowFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
         end
     end)
 
@@ -430,6 +459,7 @@ function Library:Create(Config)
         local TabObj = {}
         TabObj.Name = Name
         TabObj.ConfigData = {}
+        TabObj.Elements = {} -- FIX: Added to track elements for config loading
         
         -- TAB BUTTON
         local TabBtn = Utility:Create("TextButton", {
@@ -487,7 +517,14 @@ function Library:Create(Config)
             Content = TabContent,
             Button = TabBtn,
             ConfigData = {},
-            ApplyData = function(Data) end
+            -- FIX: Implemented ApplyData
+            ApplyData = function(Data)
+                for Key, Value in pairs(Data) do
+                    if TabObj.Elements[Key] and TabObj.Elements[Key].Set then
+                        TabObj.Elements[Key].Set(Value)
+                    end
+                end
+            end
         }
 
         TabObj.Content = TabContent
@@ -594,10 +631,13 @@ function Library:Create(Config)
                 Update()
             end)
 
-            return {
+            local Obj = {
                 Set = function(v) State = v Update() end,
                 Get = function() return State end
             }
+            
+            TabObj.Elements[Text] = Obj -- FIX: Register element
+            return Obj
         end
 
         function TabObj:Slider(Text, Min, Max, Default, Callback)
@@ -650,7 +690,8 @@ function Library:Create(Config)
                 end
             end)
             
-            UserInputService.InputEnded:Connect(function(Input)
+            -- FIX: Localized InputEnded to prevent global leak issues, though UserInputService is fine if handled correctly
+            Bar.InputEnded:Connect(function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                     Dragging = false
                 end
@@ -659,6 +700,21 @@ function Library:Create(Config)
             UserInputService.InputChanged:Connect(function(Input)
                 if Dragging then Update(Input) end
             end)
+            
+            local Obj = {
+                Set = function(v) 
+                    -- Mock Update for slider loading
+                    local Val = math.clamp(v, Min, Max)
+                    local Pos = (Val - Min) / (Max - Min)
+                    Fill.Size = UDim2.new(Pos, 0, 1, 0)
+                    Info.Text = Text .. ": " .. Val
+                    TabObj.ConfigData[Text] = Val
+                    if Callback then Callback(Val) end
+                end,
+                Get = function() return tonumber(Info.Text:sub(#Text + 3)) end
+            }
+            TabObj.Elements[Text] = Obj -- FIX: Register element
+            return Obj
         end
 
         function TabObj:Input(Text, Placeholder, Callback)
@@ -695,10 +751,12 @@ function Library:Create(Config)
                     if Callback then Callback(Box.Text) end
                 end
             end)
-            return {
+            local Obj = {
                 Set = function(t) Box.Text = t end,
                 Get = function() return Box.Text end
             }
+            TabObj.Elements[Text] = Obj -- FIX: Register element
+            return Obj
         end
 
         function TabObj:Dropdown(Text, Options, Default, Callback)
@@ -720,7 +778,8 @@ function Library:Create(Config)
             })
             Utility:Circle(Btn, 6)
             Utility:Stroke(Btn, Theme.Border)
-            Utility:Padding(Btn, 0,0,0,0, 10, 0)
+            -- FIX: Corrected arguments for Utility:Padding (4 args, not 6)
+            Utility:Padding(Btn, 0, 0, 10, 0)
 
             local List = Utility:Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 0),
@@ -759,12 +818,14 @@ function Library:Create(Config)
                         TextXAlignment = Enum.TextXAlignment.Left,
                         Parent = List
                     })
-                    Utility:Padding(O, 0,0,0,0, 10, 0)
+                    -- FIX: Corrected arguments for Utility:Padding
+                    Utility:Padding(O, 0, 0, 10, 0)
                     O.MouseButton1Click:Connect(function()
                         Open = false
                         List.Visible = false
                         List.Size = UDim2.new(1, 0, 0, 0)
                         Btn.Text = Text .. ": " .. v
+                        TabObj.ConfigData[Text] = v
                         if Callback then Callback(v) end
                     end)
                 end
@@ -772,10 +833,12 @@ function Library:Create(Config)
 
             Refresh()
 
-            return {
+            local Obj = {
                 Refresh = function(newOpts) Options = newOpts Refresh() end,
                 Set = function(v) Btn.Text = Text .. ": " .. v end
             }
+            TabObj.Elements[Text] = Obj -- FIX: Register element
+            return Obj
         end
         
         function TabObj:Keybind(Text, Default, Callback)
@@ -806,23 +869,31 @@ function Library:Create(Config)
             Utility:Stroke(Btn, Theme.Border)
 
             local Waiting = false
-            Btn.MouseButton1Click:Connect(function()
-                Waiting = true
-                Btn.Text = "[...]"
-            end)
-
-            UserInputService.InputBegan:Connect(function(Input, GPE)
+            
+            -- FIX: Added actual keybind trigger logic
+            local Connection
+            Connection = UserInputService.InputBegan:Connect(function(Input, GPE)
                 if Waiting and not GPE then
                     Waiting = false
                     Default = Input.KeyCode
                     Btn.Text = "["..Default.Name.."]"
+                    -- Update config data
+                    TabObj.ConfigData[Text] = Default.Name
+                    if Callback then Callback(Default) end
+                elseif not GPE and Input.KeyCode == Default then
                     if Callback then Callback(Default) end
                 end
             end)
             
-            return {
-                Set = function(k) Default = k Btn.Text = "["..Default.Name.."]" end
+            local Obj = {
+                Set = function(k) 
+                    Default = typeof(k) == "EnumItem" and k or Enum.KeyCode[k] or Enum.KeyCode.F
+                    Btn.Text = "["..Default.Name.."]" 
+                end,
+                Get = function() return Default end
             }
+            TabObj.Elements[Text] = Obj -- FIX: Register element
+            return Obj
         end
         
         function TabObj:ColorPicker(Text, Default, Callback)
@@ -852,11 +923,13 @@ function Library:Create(Config)
             Utility:Circle(Preview, 4)
             Utility:Stroke(Preview, Theme.Border)
 
+            -- FIX: Added ZIndex so ColorPicker appears on top
             local CP_Window = Utility:Create("Frame", {
                 Size = UDim2.new(0, 250, 0, 180),
                 Position = UDim2.new(0.5, -125, 0.5, -90),
                 BackgroundColor3 = Theme.Secondary,
                 Visible = false,
+                ZIndex = 100, 
                 Parent = ScreenGui
             })
             Utility:Circle(CP_Window, 8)
@@ -866,6 +939,7 @@ function Library:Create(Config)
                 Size = UDim2.new(1, -20, 0, 20),
                 Position = UDim2.new(0, 10, 0, 40),
                 BackgroundColor3 = Color3.fromRGB(255,255,255),
+                ZIndex = 101,
                 Parent = CP_Window
             })
             local HueGrad = Instance.new("UIGradient", HueSlider)
@@ -883,6 +957,7 @@ function Library:Create(Config)
                 Size = UDim2.new(0, 10, 1, 4),
                 Position = UDim2.new(0.5, -5, 0, -2),
                 BackgroundColor3 = Color3.fromRGB(255,255,255),
+                ZIndex = 102,
                 Parent = HueSlider
             })
             Utility:Stroke(HKnob, Color3.fromRGB(0,0,0))
@@ -891,12 +966,14 @@ function Library:Create(Config)
                 Size = UDim2.new(1, -20, 0, 20),
                 Position = UDim2.new(0, 10, 0, 70),
                 BackgroundColor3 = Color3.fromHSV(0, 0, 1),
+                ZIndex = 101,
                 Parent = CP_Window
             })
             local SKnob = Utility:Create("Frame", {
                 Size = UDim2.new(0, 10, 1, 4),
                 Position = UDim2.new(1, -10, 0, -2),
                 BackgroundColor3 = Color3.fromRGB(0,0,0),
+                ZIndex = 102,
                 Parent = SatSlider
             })
             
@@ -904,12 +981,14 @@ function Library:Create(Config)
                 Size = UDim2.new(1, -20, 0, 20),
                 Position = UDim2.new(0, 10, 0, 100),
                 BackgroundColor3 = Color3.fromRGB(0,0,0),
+                ZIndex = 101,
                 Parent = CP_Window
             })
             local VKnob = Utility:Create("Frame", {
                 Size = UDim2.new(0, 10, 1, 4),
                 Position = UDim2.new(1, -10, 0, -2),
                 BackgroundColor3 = Color3.fromRGB(255,255,255),
+                ZIndex = 102,
                 Parent = ValSlider
             })
 
@@ -918,6 +997,7 @@ function Library:Create(Config)
                 Position = UDim2.new(0.5, -40, 1, -35),
                 Text = "Select",
                 BackgroundColor3 = Theme.Accent,
+                ZIndex = 101,
                 Parent = CP_Window
             })
             Utility:Circle(CloseCP, 4)
@@ -935,7 +1015,7 @@ function Library:Create(Config)
 
             local DragH = false
             HueSlider.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragH = true end end)
-            UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragH = false end end)
+            HueSlider.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragH = false end end)
             UserInputService.InputChanged:Connect(function(i)
                 if DragH then
                     H = math.clamp((i.Position.X - HueSlider.AbsolutePosition.X) / HueSlider.AbsoluteSize.X, 0, 1)
@@ -947,6 +1027,7 @@ function Library:Create(Config)
 
             local DragS = false
             SatSlider.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragS = true end end)
+            SatSlider.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragS = false end end)
             UserInputService.InputChanged:Connect(function(i)
                 if DragS then
                     S = math.clamp((i.Position.X - SatSlider.AbsolutePosition.X) / SatSlider.AbsoluteSize.X, 0, 1)
@@ -958,6 +1039,7 @@ function Library:Create(Config)
 
             local DragV = false
             ValSlider.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragV = true end end)
+            ValSlider.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then DragV = false end end)
             UserInputService.InputChanged:Connect(function(i)
                 if DragV then
                     V = math.clamp((i.Position.X - ValSlider.AbsolutePosition.X) / ValSlider.AbsoluteSize.X, 0, 1)
@@ -975,8 +1057,21 @@ function Library:Create(Config)
 
             CloseCP.MouseButton1Click:Connect(function()
                 CP_Window.Visible = false
+                TabObj.ConfigData[Text] = SelectedColor
                 if Callback then Callback(SelectedColor) end
             end)
+            
+            local Obj = {
+                Set = function(c) 
+                    SelectedColor = c
+                    Preview.BackgroundColor3 = c
+                    H, S, V = Color3.toHSV(c)
+                    UpdateUI()
+                end,
+                Get = function() return SelectedColor end
+            }
+            TabObj.Elements[Text] = Obj -- FIX: Register element
+            return Obj
         end
         
         return TabObj
