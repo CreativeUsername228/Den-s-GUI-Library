@@ -1,15 +1,8 @@
---[[ 
-    Den's UI - "No Cap Fr Fr" Edition (Fixed)
-    Made by @1uvva
-    
-    BIG W TO: @celestialdev, @anatawahitoka, @sixx_ezzz
-    
-    USAGE:
-    Just select a Theme by name (e.g., "Neon", "Ocean", "Cyberpunk").
-    No manual RGB required unless you want to be fancy.
-    
-    FIXED
---]]
+--[[
+    DEN'S UI - COMPATIBILITY MODE
+    Optimized for Executors with limited API support (Mobile/Low-Spec).
+    Includes Robust Error Handling for Property Assignments.
+]]
 
 local Library = {}
 
@@ -25,9 +18,7 @@ local Players = game:GetService("Players")
 
 local Player = Players.LocalPlayer
 
--- ============================================
--- THEME PRESETS (The Sauce - Easy to use)
--- ============================================
+-- THEME PRESETS
 local ThemePresets = {
     ["Default"] = {
         Main = Color3.fromRGB(20, 20, 20),
@@ -96,8 +87,17 @@ local Utility = {}
 
 function Utility:Tween(Object, Info, Goal)
     if not Object or not Object.Parent then return end
-    -- Check if Info is a table or list
-    local TweenInfoData = typeof(Info) == "table" and TweenInfo.new(unpack(Info)) or Info
+    local TweenInfoData
+    if typeof(Info) == "table" then
+        -- COMPAT: Handle TweenInfo creation safely
+        local Duration = Info[1] or 0.5
+        local Easing = Info[2] or Enum.EasingStyle.Quad
+        local Direction = Info[3] or Enum.EasingDirection.Out
+        TweenInfoData = TweenInfo.new(Duration, Easing, Direction)
+    else
+        TweenInfoData = Info
+    end
+    
     local Tween = TweenService:Create(Object, TweenInfoData, Goal)
     Tween:Play()
     return Tween
@@ -106,9 +106,21 @@ end
 function Utility:Create(Class, Props)
     local Obj = Instance.new(Class)
     for i, v in pairs(Props) do
-        if i ~= "Parent" then Obj[i] = v end
+        if i ~= "Parent" then
+            -- COMPAT: Use pcall to catch "String expected, got table" errors
+            -- If an executor is buggy, v might be a table where a string is expected
+            local success, err = pcall(function()
+                Obj[i] = v
+            end)
+            
+            -- If assignment failed and it was likely a type mismatch with Text property
+            if not success and i == "Text" and type(v) ~= "string" then
+                pcall(function()
+                    Obj[i] = tostring(v) -- Force convert tables to strings for Text
+                end)
+            end
+        end
     end
-    -- FIX: Actually parent the object
     if Props.Parent then
         Obj.Parent = Props.Parent
     end
@@ -155,7 +167,6 @@ end
 function Library:Create(Config)
     Config = Config or {}
     
-    -- CORE SETUP
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "DenUI_" .. (Config.Name or "Window")
     ScreenGui.DisplayOrder = 100
@@ -163,7 +174,6 @@ function Library:Create(Config)
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = CoreGui
     
-    -- WATERMARK
     local Watermark = Utility:Create("TextLabel", {
         Size = UDim2.new(0, 160, 0, 22),
         Position = UDim2.new(1, -170, 0, 10),
@@ -179,15 +189,11 @@ function Library:Create(Config)
     })
     Utility:Circle(Watermark, 20)
     
-    -- THEME HANDLING (Easy Mode)
     local ThemeName = Config.Theme or "Default"
     local Theme = ThemePresets[ThemeName] or ThemePresets["Default"]
-    
-    -- Allow manual overrides if user wants to be sigma
     if Config.CustomAccent then Theme.Accent = Config.CustomAccent end
     if Config.CustomMain then Theme.Main = Config.CustomMain end
     
-    -- MAIN WINDOW
     local WindowFrame = Utility:Create("Frame", {
         Size = Config.Size or UDim2.new(0, 550, 0, 450),
         Position = UDim2.new(0.5, -275, 0.5, -225),
@@ -198,23 +204,19 @@ function Library:Create(Config)
     Utility:Circle(WindowFrame, 12)
     Utility:Stroke(WindowFrame, Theme.Border)
     
-    -- BLUR
-    -- FIX: Prevent duplicate blur effects
     local Blur = Lighting:FindFirstChild("DenBlur")
     if Blur then Blur:Destroy() end
-    
     Blur = Instance.new("BlurEffect", Lighting)
     Blur.Name = "DenBlur"
     Blur.Size = 0
     
-    task.spawn(function()
-        -- FIX: Set size to 0 before tweening to ensure it opens from center
+    -- COMPAT: Using coroutine.wrap instead of task.spawn
+    coroutine.wrap(function()
         WindowFrame.Size = UDim2.new(0, 0, 0, 0)
         Utility:Tween(Blur, {0.5}, {Size = Theme.BlurAmount})
         Utility:Tween(WindowFrame, {0.4, Enum.EasingStyle.Back}, {Size = Config.Size or UDim2.new(0, 550, 0, 450)})
-    end)
+    end)()
 
-    -- TITLE BAR
     local TitleBar = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 0, 35),
         Position = UDim2.new(0, 0, 0, 0),
@@ -222,9 +224,8 @@ function Library:Create(Config)
         ZIndex = 11,
         Parent = WindowFrame
     })
-    local TitleCorner = Utility:Circle(TitleBar, 12)
+    Utility:Circle(TitleBar, 12)
     
-    -- Mask to make title bar corners square at bottom (optional visual fix)
     local TitleMask = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 0, 10),
         Position = UDim2.new(0, 0, 1, -10),
@@ -246,7 +247,6 @@ function Library:Create(Config)
         Parent = TitleBar
     })
 
-    -- CONTROLS
     local MinBtn = Utility:Create("TextButton", {
         Size = UDim2.new(0, 30, 0, 20),
         Position = UDim2.new(1, -70, 0.5, -10),
@@ -273,7 +273,6 @@ function Library:Create(Config)
     })
     Utility:Circle(CloseBtn, 4)
 
-    -- LAYOUT
     local TabLayout = Utility:Create("Frame", {
         Size = UDim2.new(0, 140, 1, -35),
         Position = UDim2.new(0, 0, 0, 35),
@@ -289,7 +288,6 @@ function Library:Create(Config)
     })
     local TabListLayout = Instance.new("UIListLayout", TabList)
     TabListLayout.Padding = UDim.new(0, 5)
-    -- FIX: Update TabList CanvasSize
     TabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         TabList.CanvasSize = UDim2.new(0, 0, 0, TabListLayout.AbsoluteContentSize.Y + 10)
     end)
@@ -302,8 +300,6 @@ function Library:Create(Config)
         Parent = WindowFrame
     })
 
-    -- DRAGGING
-    -- FIX: Optimized dragging to remove stuttery tweens
     local Dragging, DragInput, DragStart, StartPos
     TitleBar.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
@@ -323,12 +319,10 @@ function Library:Create(Config)
     UserInputService.InputChanged:Connect(function(Input)
         if Input == DragInput and Dragging then
             local Delta = Input.Position - DragStart
-            -- Direct position update is smoother than Tween for dragging
             WindowFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
         end
     end)
 
-    -- STATE
     local State = {
         Tabs = {},
         Open = true,
@@ -443,16 +437,14 @@ function Library:Create(Config)
     MinBtn.MouseButton1Click:Connect(function() Window.Toggle() end)
     CloseBtn.MouseButton1Click:Connect(function() Window.Close() end)
 
-    -- TAB SYSTEM
     function Window:Tab(Name, Icon)
         Name = Name or "Tab"
         
         local TabObj = {}
         TabObj.Name = Name
         TabObj.ConfigData = {}
-        TabObj.Elements = {} -- FIX: Added to track elements for config loading
+        TabObj.Elements = {}
         
-        -- TAB BUTTON
         local TabBtn = Utility:Create("TextButton", {
             Size = UDim2.new(1, -10, 0, 35),
             BackgroundColor3 = Theme.Secondary,
@@ -476,7 +468,6 @@ function Library:Create(Config)
             })
         end
 
-        -- TAB CONTENT
         local TabContent = Utility:Create("ScrollingFrame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
@@ -508,7 +499,6 @@ function Library:Create(Config)
             Content = TabContent,
             Button = TabBtn,
             ConfigData = {},
-            -- FIX: Implemented ApplyData
             ApplyData = function(Data)
                 for Key, Value in pairs(Data) do
                     if TabObj.Elements[Key] and TabObj.Elements[Key].Set then
@@ -521,7 +511,6 @@ function Library:Create(Config)
         TabObj.Content = TabContent
         TabObj.Button = TabBtn
 
-        -- ELEMENTS
         function TabObj:Section(Text)
             local Sec = Utility:Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 25),
@@ -626,8 +615,7 @@ function Library:Create(Config)
                 Set = function(v) State = v Update() end,
                 Get = function() return State end
             }
-            
-            TabObj.Elements[Text] = Obj -- FIX: Register element
+            TabObj.Elements[Text] = Obj
             return Obj
         end
 
@@ -681,7 +669,6 @@ function Library:Create(Config)
                 end
             end)
             
-            -- FIX: Localized InputEnded to prevent global leak issues, though UserInputService is fine if handled correctly
             Bar.InputEnded:Connect(function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                     Dragging = false
@@ -694,7 +681,6 @@ function Library:Create(Config)
             
             local Obj = {
                 Set = function(v) 
-                    -- Mock Update for slider loading
                     local Val = math.clamp(v, Min, Max)
                     local Pos = (Val - Min) / (Max - Min)
                     Fill.Size = UDim2.new(Pos, 0, 1, 0)
@@ -704,7 +690,7 @@ function Library:Create(Config)
                 end,
                 Get = function() return tonumber(Info.Text:sub(#Text + 3)) end
             }
-            TabObj.Elements[Text] = Obj -- FIX: Register element
+            TabObj.Elements[Text] = Obj
             return Obj
         end
 
@@ -746,7 +732,7 @@ function Library:Create(Config)
                 Set = function(t) Box.Text = t end,
                 Get = function() return Box.Text end
             }
-            TabObj.Elements[Text] = Obj -- FIX: Register element
+            TabObj.Elements[Text] = Obj
             return Obj
         end
 
@@ -761,7 +747,7 @@ function Library:Create(Config)
             local Btn = Utility:Create("TextButton", {
                 Size = UDim2.new(1, 0, 0, 30),
                 BackgroundColor3 = Theme.Secondary,
-                Text = Text .. ": " .. Default,
+                Text = Text .. ": " .. tostring(Default),
                 TextColor3 = Theme.Text,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Font = Enum.Font.GothamSemibold,
@@ -769,7 +755,6 @@ function Library:Create(Config)
             })
             Utility:Circle(Btn, 6)
             Utility:Stroke(Btn, Theme.Border)
-            -- FIX: Corrected arguments for Utility:Padding (4 args, not 6)
             Utility:Padding(Btn, 0, 0, 10, 0)
 
             local List = Utility:Create("Frame", {
@@ -803,19 +788,18 @@ function Library:Create(Config)
                     local O = Utility:Create("TextButton", {
                         Size = UDim2.new(1, 0, 0, 25),
                         BackgroundTransparency = 1,
-                        Text = v,
+                        Text = tostring(v),
                         TextColor3 = Theme.TextDim,
                         Font = Enum.Font.Gotham,
                         TextXAlignment = Enum.TextXAlignment.Left,
                         Parent = List
                     })
-                    -- FIX: Corrected arguments for Utility:Padding
                     Utility:Padding(O, 0, 0, 10, 0)
                     O.MouseButton1Click:Connect(function()
                         Open = false
                         List.Visible = false
                         List.Size = UDim2.new(1, 0, 0, 0)
-                        Btn.Text = Text .. ": " .. v
+                        Btn.Text = Text .. ": " .. tostring(v)
                         TabObj.ConfigData[Text] = v
                         if Callback then Callback(v) end
                     end)
@@ -826,9 +810,9 @@ function Library:Create(Config)
 
             local Obj = {
                 Refresh = function(newOpts) Options = newOpts Refresh() end,
-                Set = function(v) Btn.Text = Text .. ": " .. v end
+                Set = function(v) Btn.Text = Text .. ": " .. tostring(v) end
             }
-            TabObj.Elements[Text] = Obj -- FIX: Register element
+            TabObj.Elements[Text] = Obj
             return Obj
         end
         
@@ -852,7 +836,7 @@ function Library:Create(Config)
                 Size = UDim2.new(0, 100, 0, 25),
                 Position = UDim2.new(1, -110, 0.5, -12),
                 BackgroundColor3 = Theme.Secondary,
-                Text = "["..Default.Name.."]",
+                Text = "["..tostring(Default and Default.Name or "F").."]",
                 TextColor3 = Theme.Accent,
                 Parent = KB
             })
@@ -860,15 +844,12 @@ function Library:Create(Config)
             Utility:Stroke(Btn, Theme.Border)
 
             local Waiting = false
-            
-            -- FIX: Added actual keybind trigger logic
             local Connection
             Connection = UserInputService.InputBegan:Connect(function(Input, GPE)
                 if Waiting and not GPE then
                     Waiting = false
                     Default = Input.KeyCode
-                    Btn.Text = "["..Default.Name.."]"
-                    -- Update config data
+                    Btn.Text = "["..tostring(Default.Name).."]"
                     TabObj.ConfigData[Text] = Default.Name
                     if Callback then Callback(Default) end
                 elseif not GPE and Input.KeyCode == Default then
@@ -878,12 +859,12 @@ function Library:Create(Config)
             
             local Obj = {
                 Set = function(k) 
-                    Default = typeof(k) == "EnumItem" and k or Enum.KeyCode[k] or Enum.KeyCode.F
-                    Btn.Text = "["..Default.Name.."]" 
+                    Default = typeof(k) == "EnumItem" and k or (typeof(k) == "string" and Enum.KeyCode[k]) or Enum.KeyCode.F
+                    Btn.Text = "["..tostring(Default.Name).."]" 
                 end,
                 Get = function() return Default end
             }
-            TabObj.Elements[Text] = Obj -- FIX: Register element
+            TabObj.Elements[Text] = Obj
             return Obj
         end
         
@@ -914,7 +895,6 @@ function Library:Create(Config)
             Utility:Circle(Preview, 4)
             Utility:Stroke(Preview, Theme.Border)
 
-            -- FIX: Added ZIndex so ColorPicker appears on top
             local CP_Window = Utility:Create("Frame", {
                 Size = UDim2.new(0, 250, 0, 180),
                 Position = UDim2.new(0.5, -125, 0.5, -90),
@@ -1061,7 +1041,7 @@ function Library:Create(Config)
                 end,
                 Get = function() return SelectedColor end
             }
-            TabObj.Elements[Text] = Obj -- FIX: Register element
+            TabObj.Elements[Text] = Obj
             return Obj
         end
         
@@ -1071,4 +1051,105 @@ function Library:Create(Config)
     return Window
 end
 
-return Library
+-- SHOWCASE
+local Window = Library:Create({
+    Name = "Den's UI - Showcase",
+    Theme = "Cyberpunk",
+    Size = UDim2.new(0, 600, 0, 500),
+    ConfigName = "DenShowcaseConfig"
+})
+
+task.wait(1)
+Window:Notify("System Loaded", "Welcome to Den's UI Showcase!", 5, "Success")
+
+-- TAB 1
+local Tab1 = Window:Tab("Core System", "rbxassetid://7743878837")
+Tab1:Section("Information")
+Tab1:Button("Info Notification", function()
+    Window:Notify("Information", "This is an info message.", 3, "Info")
+end)
+Tab1:Button("Warning Notification", function()
+    Window:Notify("Warning", "This is a warning message.", 3, "Warning")
+end)
+Tab1:Button("Error Notification", function()
+    Window:Notify("Error", "Something went wrong!", 3, "Error")
+end)
+Tab1:Section("Configuration Management")
+Tab1:Button("Save Settings", function()
+    Window:SaveConfig()
+    Window:Notify("Config", "Settings saved to 'DenShowcaseConfig.json'", 2, "Success")
+end)
+Tab1:Button("Load Settings", function()
+    Window:LoadConfig()
+    Window:Notify("Config", "Settings loaded from file.", 2, "Info")
+end)
+Tab1:Toggle("Auto-Save", false, function(State)
+    print("Auto-save is now:", State)
+end)
+
+-- TAB 2
+local Tab2 = Window:Tab("Player Actions", "rbxassetid://7743879421")
+Tab2:Section("Movement")
+Tab2:Toggle("Super Speed", false, function(State)
+    local Char = game.Players.LocalPlayer.Character
+    if Char and Char:FindFirstChild("Humanoid") then
+        Char.Humanoid.WalkSpeed = State and 50 or 16
+    end
+end)
+Tab2:Slider("Jump Power", 0, 200, 50, function(Value)
+    local Char = game.Players.LocalPlayer.Character
+    if Char and Char:FindFirstChild("Humanoid") then
+        Char.Humanoid.JumpPower = Value
+    end
+end)
+Tab2:Keybind("Toggle UI Visibility", Enum.KeyCode.RightControl, function(Key)
+    Window:Toggle()
+end)
+
+-- TAB 3
+local Tab3 = Window:Tab("Inputs & Visuals", "rbxassetid://7743880363")
+Tab3:Section("Data Entry")
+Tab3:Input("Change Username", "Type new name...", function(Text)
+    game.Players.LocalPlayer.DisplayName = Text
+    Window:Notify("Name Changed", "Display name set to: " .. Text, 2, "Success")
+end)
+Tab3:Section("Customization")
+Tab3:ColorPicker("Torso Color", Color3.fromRGB(255, 255, 255), function(Color)
+    local Char = game.Players.LocalPlayer.Character
+    if Char then
+        local Torso = Char:FindFirstChild("Torso") or Char:FindFirstChild("UpperTorso")
+        if Torso then Torso.Color = Color end
+    end
+end)
+Tab3:Dropdown("Gravity Preset", {"Low", "Normal", "High", "Moon"}, "Normal", function(Option)
+    local Workspace = game:GetService("Workspace")
+    if Option == "Low" then
+        Workspace.Gravity = 50
+    elseif Option == "Normal" then
+        Workspace.Gravity = 196.2
+    elseif Option == "High" then
+        Workspace.Gravity = 350
+    elseif Option == "Moon" then
+        Workspace.Gravity = 5
+    end
+    Window:Notify("Gravity", "Set to " .. Option, 1.5, "Info")
+end)
+local FruitDropdown = Tab3:Dropdown("Select Fruit", {"Apple", "Banana"}, "Apple", function(Option)
+    print("Selected Fruit:", Option)
+end)
+Tab3:Button("Refresh Fruits", function()
+    FruitDropdown:Refresh({"Orange", "Grape", "Mango"})
+    Window:Notify("Updated", "Fruit list refreshed!", 2, "Success")
+end)
+
+-- TAB 4
+local Tab4 = Window:Tab("Theme Test", "rbxassetid://7743879624")
+Tab4:Section("Theme Switcher")
+Tab4:Button("Show Theme Info", function()
+    Window:Notify("Theme", "Current Theme: Cyberpunk (Accent: Purple)", 4, "Info")
+end)
+Tab4:Section("Element Preview")
+Tab4:Toggle("Preview Toggle", true, function() end)
+Tab4:Slider("Preview Slider", 0, 100, 50, function() end)
+Tab4:Keybind("Preview Keybind", Enum.KeyCode.E, function() end)
+Tab4:Input("Preview Input", nil, function() end)
