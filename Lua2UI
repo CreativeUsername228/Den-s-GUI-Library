@@ -8,16 +8,7 @@
     Just select a Theme by name (e.g., "Neon", "Ocean", "Cyberpunk").
     No manual RGB required unless you want to be fancy.
     
-    FIXES:
-    - Fixed Utility:Create not parenting objects (UI was invisible).
-    - Fixed Utility:Padding argument mismatch in Dropdown.
-    - Fixed Window opening animation glitch.
-    - Added TabList CanvasSize automatic updating.
-    - Optimized Dragging logic (removed laggy tweens).
-    - Implemented Keybind trigger (now actually fires when pressed).
-    - Implemented Config Save/Load (now properly updates UI elements).
-    - Fixed ZIndex issues in ColorPicker.
-    - Fixed Blur effect duplication on re-run.
+    FIXED
 --]]
 
 local Library = {}
